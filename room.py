@@ -19,10 +19,13 @@ class Room:
         self.enemies = pygame.sprite.Group()
         self.npcs = pygame.sprite.Group()
         self.loot = pygame.sprite.Group()  # For later use
+        self.is_cleared = False
 
         # --- Only spawn enemies in dungeon rooms ---
         if room_type == "dungeon":
             self.spawn_enemies()
+            if not self.enemies:
+                self.is_cleared = True
 
     def add_sprite(self, sprite):
         """A helper method to add a sprite to the all_sprites group."""
@@ -52,6 +55,8 @@ class Room:
         # Update AI for all enemies in this room
         for enemy in self.enemies:
             enemy.update_ai(player, self.width, self.height)
+        if not self.enemies:
+            self.is_cleared = True
 
     def draw(self, screen):
         """Draw everything in the room."""

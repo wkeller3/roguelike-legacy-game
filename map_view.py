@@ -24,6 +24,9 @@ def draw_map(screen, game_map):
     # --- Pass 1: Draw each explored room's square ---
     room_rects = {}
     for room_coords in game_map.explored_rooms:
+        room = game_map.rooms.get(room_coords)
+        if not room:
+            continue
         rel_x = room_coords[0] - player_room_coords[0]
         rel_y = room_coords[1] - player_room_coords[1]
         draw_x = screen_center_x + rel_x * total_tile_size - (room_size / 2)
@@ -34,13 +37,23 @@ def draw_map(screen, game_map):
         # Determine color
         if room_coords == player_room_coords:
             color = C.MAP_PLAYER
-        # --- Check if this is the dungeon entrance ---
-        elif room_coords == (0, 0):
-            color = C.YELLOW  # Use a distinct color for the entrance
+        elif room.is_cleared:
+            color = C.MAP_CLEARED
         else:
             color = C.MAP_EXPLORED
 
         pygame.draw.rect(overlay, color, rect)
+
+    exit_map = {"NORTH": (0, -1), "SOUTH": (0, 1), "WEST": (-1, 0), "EAST": (1, 0)}
+    # The exit is at the starting room (0,0) in the direction of entry
+    if game_map.entry_direction in exit_map:
+        exit_coords = exit_map[game_map.entry_direction]
+        rel_x = exit_coords[0] - player_room_coords[0]
+        rel_y = exit_coords[1] - player_room_coords[1]
+        draw_x = screen_center_x + rel_x * total_tile_size - (room_size / 2)
+        draw_y = screen_center_y + rel_y * total_tile_size - (room_size / 2)
+        rect = pygame.Rect(draw_x, draw_y, room_size, room_size)
+        pygame.draw.rect(overlay, C.MAP_EXIT, rect, border_radius=4)
 
     # --- Pass 2: Draw connections and hints for ALL FOUR directions ---
     for room_coords, rect in room_rects.items():
