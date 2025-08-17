@@ -244,11 +244,15 @@ class TownState(GameplayState):
 
     def handle_events(self, event):
         super().handle_events(event)
+        # --- Delegate event handling to the DialogueBox ---
+        if self.dialogue_box.is_active:
+            self.dialogue_box.handle_event(event)
+            return  # Don't process other keys while in dialogue
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_e:  # The 'Interact' key
-                if self.dialogue_box.is_active:
-                    self.dialogue_box.advance()
-                elif self.nearby_npc:
+                if self.nearby_npc:
+                    # Start dialogue if not already active
                     self.dialogue_box.start_dialogue(self.nearby_npc)
 
     def update(self, dt):

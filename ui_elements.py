@@ -3,6 +3,23 @@ import pygame
 import constants as C
 
 
+def wrap_text(text, font, max_width):
+    """Wraps text to a specific width."""
+    words = text.split(" ")
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = f"{current_line} {word}".strip()
+        if font.size(test_line)[0] <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+    lines.append(current_line)
+    return lines
+
+
 class Button:
     """A clickable button UI element."""
 
@@ -63,35 +80,79 @@ class TextBox:
 
 
 class DialogueBox:
-    """A UI element for displaying conversations."""
+    """A UI element for displaying branching conversations with keyboard and mouse support."""
 
     def __init__(self):
-        self.rect = pygame.Rect(50, C.SCREEN_HEIGHT - 150, C.SCREEN_WIDTH - 100, 120)
+        self.rect = pygame.Rect(50, C.SCREEN_HEIGHT - 170, C.SCREEN_WIDTH - 100, 150)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
         self.font_speaker = pygame.font.Font(None, C.FONT_SIZE_HEADER)
 
         self.is_active = False
         self.speaker_name = ""
-        self.dialogue_lines = []
-        self.current_line_index = 0
+        self.dialogue_nodes = {}
+        self.current_node_key = "start"
+
+        self.choice_rects = []
+        self.selected_choice_idx = 0
 
     def start_dialogue(self, npc):
-        """Starts a new conversation."""
+        """Starts a new conversation with an NPC."""
         self.is_active = True
         self.speaker_name = npc.name
-        self.dialogue_lines = npc.dialogue
-        self.current_line_index = 0
+        self.dialogue_nodes = npc.dialogue_nodes
+        self.current_node_key = "start"
+        self.selected_choice_idx = 0
 
-    def advance(self):
-        """Advances to the next line of dialogue, or ends it."""
-        self.current_line_index += 1
-        if self.current_line_index >= len(self.dialogue_lines):
-            self.is_active = False
-            self.speaker_name = ""
-            self.dialogue_lines = []
+    def _select_choice(self, choice_index):
+        """Processes the selection of a choice."""
+        current_node = self.dialogue_nodes.get(self.current_node_key)
+        if not current_node or choice_index >= len(current_node["choices"]):
+            return
+
+        target_node = current_node["choices"][choice_index]["target"]
+        if target_node == "end":
+            self.is_active = False  # End conversation
+        else:
+            self.current_node_key = target_node  # Go to next node
+            self.selected_choice_idx = 0  # Reset selection for the new node
+
+    def handle_event(self, event):
+        """Handles player input for dialogue choices."""
+        if not self.is_active:
+            return
+
+        current_node = self.dialogue_nodes.get(self.current_node_key)
+        if not current_node:
+            return
+        num_choices = len(current_node["choices"])
+
+        # Handle Keyboard Input
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                self.selected_choice_idx = (self.selected_choice_idx - 1) % num_choices
+            elif event.key == pygame.K_DOWN:
+                self.selected_choice_idx = (self.selected_choice_idx + 1) % num_choices
+            elif (
+                event.key == pygame.K_RETURN
+                or event.key == pygame.K_SPACE
+                or event.key == pygame.K_e
+            ):
+                self._select_choice(self.selected_choice_idx)
+
+        # Handle Mouse Click Input
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for i, choice_rect in enumerate(self.choice_rects):
+                if choice_rect.collidepoint(event.pos):
+                    self._select_choice(i)
+                    return
 
     def draw(self, screen):
         if not self.is_active:
+            return
+
+        current_node = self.dialogue_nodes.get(self.current_node_key)
+        if not current_node:
+            self.is_active = False
             return
 
         # Draw the main box
@@ -102,9 +163,37 @@ class DialogueBox:
         speaker_surf = self.font_speaker.render(
             f"{self.speaker_name}:", True, (200, 200, 100)
         )
-        screen.blit(speaker_surf, (self.rect.x + 15, self.rect.y + 15))
+        screen.blit(speaker_surf, (self.rect.x + 15, self.rect.y + 10))
 
-        # Draw the current line of dialogue
-        line_to_show = self.dialogue_lines[self.current_line_index]
-        dialogue_surf = self.font_text.render(line_to_show, True, C.WHITE)
-        screen.blit(dialogue_surf, (self.rect.x + 20, self.rect.y + 60))
+        # --- NEW: Text Wrapping for main dialogue text ---
+        wrapped_lines = wrap_text(
+            current_node["text"], self.font_text, self.rect.width - 40
+        )
+        for i, line in enumerate(wrapped_lines):
+            dialogue_surf = self.font_text.render(line, True, C.WHITE)
+            screen.blit(dialogue_surf, (self.rect.x + 20, self.rect.y + 45 + i * 25))
+
+        # --- NEW: Mouse Hover and Keyboard Selection for choices ---
+        self.choice_rects = []
+        mouse_pos = pygame.mouse.get_pos()
+        choice_y_start = self.rect.y + 90
+        for i, choice in enumerate(current_node["choices"]):
+            # Check for mouse hover to update selection
+            temp_rect = pygame.Rect(
+                self.rect.x + 25, choice_y_start + i * 25, self.rect.width - 50, 25
+            )
+            if temp_rect.collidepoint(mouse_pos):
+                self.selected_choice_idx = i
+
+            # Determine color based on selection
+            color = (
+                (200, 200, 255) if i == self.selected_choice_idx else (150, 150, 180)
+            )
+
+            choice_text = f"{choice['text']}"  # Removed numbering for a cleaner look
+            choice_surf = self.font_text.render(choice_text, True, color)
+            choice_pos = (self.rect.x + 30, choice_y_start + i * 25)
+
+            # We store the actual rendered rect for click detection
+            rendered_rect = screen.blit(choice_surf, choice_pos)
+            self.choice_rects.append(rendered_rect)

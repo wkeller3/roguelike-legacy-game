@@ -3,11 +3,27 @@
         {
             "name": "Old Villager",
             "pos": [650, 300],
-            "dialogue": [
-                "Greetings, traveler.",
-                "The world has grown dark since the curse fell upon your family...",
-                "Be wary of the dungeon to the east. Vicious creatures lurk within."
-            ]
+            "dialogue_nodes": {
+                "start": {
+                    "text": "Greetings, traveler. Do you seek adventure, or news of the town?",
+                    "choices": [
+                        { "text": "I seek adventure.", "target": "dungeon_talk" },
+                        { "text": "What is this place?", "target": "town_talk" }
+                    ]
+                },
+                "dungeon_talk": {
+                    "text": "The dungeon to the east is a dangerous place. Vicious creatures lurk within.",
+                    "choices": [
+                        { "text": "I'll keep that in mind. (Leave)", "target": "end" }
+                    ]
+                },
+                "town_talk": {
+                    "text": "This is the last safe haven. We huddle here, hoping the curse on your family doesn't consume us all.",
+                    "choices": [
+                        { "text": "I will break the curse. (Leave)", "target": "end" }
+                    ]
+                }
+            }
         }
     ]
 }
