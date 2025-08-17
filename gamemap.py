@@ -9,73 +9,80 @@ class GameMap:
     to create a unique dungeon layout.
     """
 
-    def __init__(self, max_rooms, screen_width, screen_height):
+    def __init__(self, max_rooms, screen_width, screen_height, entry_direction):
         """
         Args:
             max_rooms (int): The number of rooms to generate for the dungeon.
             screen_width (int): Pixel width of the screen.
             screen_height (int): Pixel height of the screen.
+            entry_direction (str): The side from which the player enters ('NORTH', 'SOUTH', etc.)
         """
         self.max_rooms = max_rooms
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self.entry_direction = entry_direction  # Store the entry direction
 
         self.rooms = {}
-        # The player always starts in the room at coordinates (0, 0)
         self.current_room_coords = (0, 0)
-
-        # --- A set to store the coordinates of visited rooms ---
         self.explored_rooms = set()
-
-        self._generate_dungeon()
-
-        # After generating, mark the starting room as explored
-        self.explored_rooms.add((0, 0))
 
         self._generate_dungeon()
 
     def _generate_dungeon(self):
         """
-        Creates a dungeon using the "Drunkard's Walk" algorithm, ensuring
-        the exit at (-1, 0) is never blocked.
+        Creates a dungeon, keeping the exit clear based on the entry direction
+        and guaranteeing a path away from the entrance.
         """
         print("--- Generating new dungeon ---")
 
+        # Determine the single forbidden tile for the exit
+        exit_map = {"NORTH": (0, -1), "SOUTH": (0, 1), "WEST": (-1, 0), "EAST": (1, 0)}
+        opposite_map = {
+            "NORTH": (0, 1),
+            "SOUTH": (0, -1),
+            "WEST": (1, 0),
+            "EAST": (-1, 0),
+        }
+
+        forbidden_tile = exit_map[self.entry_direction]
+
+        # Create the starting room
         digger_x, digger_y = 0, 0
         self.rooms[(digger_x, digger_y)] = Room(self.screen_width, self.screen_height)
+        self.explored_rooms.add((digger_x, digger_y))
         num_rooms_created = 1
 
+        # --- uarantee a path away from the entrance ---
+        # Force the first step to be away from the entry direction
+        first_step = opposite_map[self.entry_direction]
+        digger_x += first_step[0]
+        digger_y += first_step[1]
+        self.rooms[(digger_x, digger_y)] = Room(self.screen_width, self.screen_height)
+        num_rooms_created += 1
+        print(f"Created entrance corridor at ({digger_x}, {digger_y})")
+
         while num_rooms_created < self.max_rooms:
-            # The digger can attempt to move in any of the four directions
             directions = [(0, -1), (0, 1), (1, 0), (-1, 0)]
             (dx, dy) = random.choice(directions)
 
             new_x = digger_x + dx
             new_y = digger_y + dy
 
-            # --- Add a universal check to forbid the exit tile ---
-            # If the digger tries to move into the exit space, stop this
-            # iteration and try a different direction next time.
-            if (new_x, new_y) == (-1, 0):
+            # Check if the new spot is the single forbidden exit tile
+            if (new_x, new_y) == forbidden_tile:
                 continue
 
-            # If this spot hasn't been carved out yet, create a new room
             if (new_x, new_y) not in self.rooms:
-                new_room = Room(self.screen_width, self.screen_height)
-                self.rooms[(new_x, new_y)] = new_room
+                self.rooms[(new_x, new_y)] = Room(self.screen_width, self.screen_height)
                 num_rooms_created += 1
-                print(
-                    f"Created room #{num_rooms_created} at ({new_x}, {new_y}) with {len(new_room.enemies)} enemies."
-                )
 
-            # The digger always moves to the new spot (unless it was the forbidden tile)
             digger_x, digger_y = new_x, new_y
 
         print("--- Dungeon generation complete! ---")
 
     def get_current_room(self):
         """Returns the Room object for the player's current coordinates."""
-        return self.rooms.get(self.current_room_coords)  # .get() is safer
+        return self.rooms.get(self.current_room_coords)
 
     def move_to_room(self, dx, dy):
         """

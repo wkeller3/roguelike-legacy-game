@@ -15,7 +15,6 @@ from states import (
     CharacterSheetState,
 )
 from hero import Hero
-from gamemap import GameMap
 
 # --- Developer flag to bypass character creation for quick testing ---
 DEV_SKIP_CHAR_CREATION = True
@@ -67,11 +66,8 @@ class Game:
                 crit_chance=0.1,
                 crit_multiplier=2.0,
             )
-            game_map = GameMap(
-                max_rooms=15, screen_width=C.SCREEN_WIDTH, screen_height=C.SCREEN_HEIGHT
-            )
 
-            persistent_data = {"player": player, "game_map": game_map}
+            persistent_data = {"player": player}
             self.state_stack.append(self.states["TOWN"](self, persistent_data))
         else:
             char_creation_data = self.load_char_creation_data()

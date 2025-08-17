@@ -75,11 +75,7 @@ class CharCreationState(BaseState):
             player.equipped_weapon = self.data["weapon_choices"][
                 self.data["selected_weapon_idx"]
             ]
-            game_map = GameMap(
-                max_rooms=15, screen_width=C.SCREEN_WIDTH, screen_height=C.SCREEN_HEIGHT
-            )
             self.persistent_data["player"] = player
-            self.persistent_data["game_map"] = game_map
             self.done = True
             self.next_state = "TOWN"
         # Handle other mouse clicks (name box, weapon selection)
@@ -364,24 +360,36 @@ class OverworldState(GameplayState):
         # --- Dynamic entry direction logic ---
         for name, data in self.pois.items():
             if self.player_avatar.colliderect(data["rect"]):
-                if name == "Dungeon":
-                    self.persistent_data["entry_direction"] = "WEST"
-                else:
-                    # Calculate the difference vector between centers
-                    dx = self.player_avatar.centerx - data["rect"].centerx
-                    dy = self.player_avatar.centery - data["rect"].centery
+                # Step 1: Immediately determine the entry direction based on collision
+                col_dx = self.player_avatar.centerx - data["rect"].centerx
+                col_dy = self.player_avatar.centery - data["rect"].centery
 
-                    # Determine primary axis of collision
-                    if abs(dx) > abs(dy):  # Horizontal collision
-                        if dx > 0:
-                            self.persistent_data["entry_direction"] = "EAST"
-                        else:
-                            self.persistent_data["entry_direction"] = "WEST"
-                    else:  # Vertical collision
-                        if dy > 0:
-                            self.persistent_data["entry_direction"] = "SOUTH"
-                        else:
-                            self.persistent_data["entry_direction"] = "NORTH"
+                entry_direction = ""
+                if abs(col_dx) > abs(col_dy):  # Horizontal collision
+                    if col_dx > 0:
+                        entry_direction = "EAST"
+                    else:
+                        entry_direction = "WEST"
+                else:  # Vertical collision
+                    if col_dy > 0:
+                        entry_direction = "SOUTH"
+                    else:
+                        entry_direction = "NORTH"
+
+                # Step 2: If entering the dungeon, generate a new map using the direction
+                if name == "Dungeon":
+                    new_dungeon_map = GameMap(
+                        max_rooms=15,
+                        screen_width=C.SCREEN_WIDTH,
+                        screen_height=C.SCREEN_HEIGHT,
+                        entry_direction=entry_direction,
+                    )
+                    self.persistent_data["game_map"] = new_dungeon_map
+
+                # Step 3: Store the entry direction for the next state to use
+                self.persistent_data["entry_direction"] = entry_direction
+
+                # Step 4: Trigger the state transition
                 self.done = True
                 self.next_state = data["target_state"]
 
@@ -445,14 +453,28 @@ class ExploringState(GameplayState):
             self.player.move(dx, dy, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
         # Update enemy AI and check for room transitions
         self.current_room.update(self.player)
-        # --- Re-structured transition logic ---
-        # First, check for the single, specific exit to the overworld
-        if self.game_map.current_room_coords == (0, 0) and self.player.rect.left <= 0:
-            self.persistent_data["exit_to_overworld_from"] = "Dungeon"
-            self.persistent_data["overworld_entry_direction"] = "WEST"
-            self.done = True
-            self.next_state = "OVERWORLD"
-            return  # Exit the update method to prevent other checks
+        # --- Check for exits to Overworld from the start room ---
+        if self.game_map.current_room_coords == (0, 0):
+            exit_direction = self.game_map.entry_direction
+
+            should_exit = False
+            if exit_direction == "NORTH" and self.player.rect.top <= 0:
+                should_exit = True
+            elif (
+                exit_direction == "SOUTH" and self.player.rect.bottom >= C.SCREEN_HEIGHT
+            ):
+                should_exit = True
+            elif exit_direction == "WEST" and self.player.rect.left <= 0:
+                should_exit = True
+            elif exit_direction == "EAST" and self.player.rect.right >= C.SCREEN_WIDTH:
+                should_exit = True
+
+            if should_exit:
+                self.persistent_data["exit_to_overworld_from"] = "Dungeon"
+                self.persistent_data["overworld_entry_direction"] = exit_direction
+                self.done = True
+                self.next_state = "OVERWORLD"
+                return
 
         # If not exiting to overworld, check for room-to-room transitions
         new_room = None

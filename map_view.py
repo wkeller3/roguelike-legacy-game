@@ -30,7 +30,16 @@ def draw_map(screen, game_map):
         draw_y = screen_center_y + rel_y * total_tile_size - (room_size / 2)
         rect = pygame.Rect(draw_x, draw_y, room_size, room_size)
         room_rects[room_coords] = rect
-        color = C.MAP_PLAYER if room_coords == player_room_coords else C.MAP_EXPLORED
+
+        # Determine color
+        if room_coords == player_room_coords:
+            color = C.MAP_PLAYER
+        # --- Check if this is the dungeon entrance ---
+        elif room_coords == (0, 0):
+            color = C.YELLOW  # Use a distinct color for the entrance
+        else:
+            color = C.MAP_EXPLORED
+
         pygame.draw.rect(overlay, color, rect)
 
     # --- Pass 2: Draw connections and hints for ALL FOUR directions ---
