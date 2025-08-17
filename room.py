@@ -1,7 +1,7 @@
 # room.py
 import pygame
 import random
-from factories import enemy_factories  # Import our new enemy factory
+from factories import create_enemy, get_available_enemy_types
 
 
 class Room:
@@ -27,27 +27,20 @@ class Room:
         self.all_sprites.add(sprite)
 
     def spawn_enemies(self):
-        """Create enemies and add them to the appropriate groups."""
+        """Create a random number and type of enemies using the new factory system."""
 
-        # We can create a specific number of enemies here.
-        # Later, this number can be randomized.
         num_enemies = random.randint(1, 3)
-
-        # --- Randomly select which type of enemy to spawn ---
-        available_enemy_types = list(enemy_factories.keys())
+        available_enemy_types = get_available_enemy_types()
 
         for _ in range(num_enemies):
             x = random.randint(self.width // 2, self.width - 50)
             y = random.randint(50, self.height - 50)
 
             # Choose a random enemy type (e.g., "goblin" or "orc")
-            enemy_type_key = random.choice(available_enemy_types)
+            enemy_type = random.choice(available_enemy_types)
 
-            # Get the correct factory function from the dictionary
-            enemy_factory = enemy_factories[enemy_type_key]
-
-            # Call the factory to create the enemy instance
-            enemy = enemy_factory(x=x, y=y)
+            # Use the single factory function to create the enemy
+            enemy = create_enemy(enemy_type, x, y)
 
             self.all_sprites.add(enemy)
             self.enemies.add(enemy)

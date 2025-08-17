@@ -8,25 +8,39 @@ import constants as C
 
 class Enemy(pygame.sprite.Sprite):
     """
-    This is the BASE class for all enemies. It contains all the shared logic
-    for AI, movement, and basic attributes.
+    A generic Enemy class that is configured using a data template.
+    All enemies share this same class and logic.
     """
 
-    def __init__(self, pos_x, pos_y):
+    def __init__(self, pos_x, pos_y, template_data):
         super().__init__()
-        # These are placeholders; they will be defined by the subclasses.
-        self.health = 1
-        self.stats = {}
-        self.equipped_weapon = None
-        self.speed = 1
-        self.sight_radius = 100
-        self.chase_radius = 150
 
-        # Default appearance (can be overridden by subclasses)
+        # --- Configure from Template ---
+        self.name = template_data["name"]
+
+        # Appearance
         self.image = pygame.Surface((32, 32))
-        self.image.fill((255, 255, 255))  # Default to white
-        self.rect = self.image.get_rect()
-        self.rect.center = (pos_x, pos_y)
+        self.image.fill(tuple(template_data["color"]))
+        self.rect = self.image.get_rect(center=(pos_x, pos_y))
+
+        # Stats with random variation
+        self.health = random.randint(*template_data["health_range"])
+        self.stats = {
+            "Strength": random.randint(*template_data["stats"]["Strength"]),
+            "Dexterity": random.randint(*template_data["stats"]["Dexterity"]),
+        }
+        self.speed = random.uniform(*template_data["speed_range"])
+        self.sight_radius = template_data["sight_radius"]
+        self.chase_radius = self.sight_radius + 50
+
+        # Equipment
+        w_data = template_data["weapon"]
+        self.equipped_weapon = Weapon(
+            name=w_data["name"],
+            base_damage=tuple(w_data["base_damage"]),
+            crit_chance=w_data["crit_chance"],
+            crit_multiplier=w_data["crit_multiplier"],
+        )
 
         # Shared AI and Combat State
         self.state = "WANDERING"
@@ -36,12 +50,11 @@ class Enemy(pygame.sprite.Sprite):
         self.wander_duration = random.randint(60, 180)
 
     def get_random_direction(self):
-        # ... (This method is unchanged) ...
         angle = random.uniform(0, 2 * math.pi)
         return (math.cos(angle), math.sin(angle))
 
     def update_ai(self, player, screen_width, screen_height):
-        # ... (This entire method is unchanged, as it's shared by all enemies) ...
+        # ... (This entire method is unchanged) ...
         dist_to_player = math.hypot(
             self.rect.centerx - player.rect.centerx,
             self.rect.centery - player.rect.centery,
@@ -82,56 +95,3 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom > screen_height:
             self.rect.bottom = screen_height
-
-
-# --- Specific Enemy Type Subclasses ---
-
-
-class Goblin(Enemy):
-    """A Goblin is a fast, common enemy with stat variations."""
-
-    def __init__(self, pos_x, pos_y):
-        # First, run the __init__ of the parent Enemy class
-        super().__init__(pos_x, pos_y)
-
-        # Now, customize the stats for a Goblin
-        self.image.fill(C.RED)  # Goblins are red
-
-        # Add random variation to stats
-        self.health = random.randint(30, 45)
-        self.stats = {
-            "Strength": random.randint(2, 4),
-            "Dexterity": random.randint(3, 6),
-        }
-        self.speed = random.uniform(2.0, 2.5)  # Slight speed variance
-        self.sight_radius = 300
-        self.chase_radius = 350
-        self.equipped_weapon = Weapon(
-            name="Rusty Dagger",
-            base_damage=(3, 6),
-            crit_chance=0.1,
-            crit_multiplier=1.5,
-        )
-
-
-class Orc(Enemy):
-    """An Orc is a slower, tougher enemy."""
-
-    def __init__(self, pos_x, pos_y):
-        # Run the parent __init__ method
-        super().__init__(pos_x, pos_y)
-
-        # Customize for an Orc
-        self.image.fill(C.GREEN)  # Orcs are green
-
-        self.health = random.randint(60, 80)  # Much tougher
-        self.stats = {
-            "Strength": random.randint(5, 8),  # Much stronger
-            "Dexterity": random.randint(1, 3),  # Much clumsier
-        }
-        self.speed = random.uniform(1.2, 1.6)  # Slower
-        self.sight_radius = 200  # Worse eyesight
-        self.chase_radius = 250
-        self.equipped_weapon = Weapon(
-            name="Crude Axe", base_damage=(5, 10), crit_chance=0.05, crit_multiplier=1.5
-        )
