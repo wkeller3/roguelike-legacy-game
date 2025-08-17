@@ -10,6 +10,7 @@ from combat import resolve_attack
 from map_view import draw_map
 from room import Room
 import json
+from ui_elements import Button, TextBox, DialogueBox
 
 
 # ... (BaseState and CharCreationState are unchanged) ...
@@ -189,13 +190,44 @@ class GameplayState(BaseState):
 
 
 class TownState(GameplayState):
+    """
+    The state for the main town or hub area. It's a safe zone
+    with no enemies, and now with interactable NPCs.
+    """
+
     def __init__(self, persistent_data):
         super().__init__(persistent_data)
         self.town_room = Room(C.SCREEN_WIDTH, C.SCREEN_HEIGHT, room_type="town")
         self.town_room.add_player(self.player)
+
         # --- Load NPCs from the data file ---
         self._load_npcs()
-        self.player.rect.center = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2)
+
+        # Player repositioning logic
+        entry_point = self.persistent_data.get("entry_direction", "CENTER")
+        if entry_point == "NORTH":
+            self.player.rect.midtop = (C.SCREEN_WIDTH / 2, 20)
+        elif entry_point == "SOUTH":
+            self.player.rect.midbottom = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT - 20)
+        elif entry_point == "WEST":
+            self.player.rect.midleft = (20, C.SCREEN_HEIGHT / 2)
+        elif entry_point == "EAST":
+            self.player.rect.midright = (C.SCREEN_WIDTH - 20, C.SCREEN_HEIGHT / 2)
+        else:
+            self.player.rect.center = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2)
+
+        # --- Dialogue System variables ---
+        self.is_in_dialogue = False
+        self.nearby_npc = None
+        self.active_dialogue = []
+        self.dialogue_index = 0
+        self.active_npc = None
+
+        # --- Create instances of our UI elements ---
+        hint_rect = pygame.Rect(0, C.SCREEN_HEIGHT - 60, C.SCREEN_WIDTH, 50)
+        self.interaction_hint = TextBox("", hint_rect, self.font_text)
+        self.interaction_hint.is_visible = False
+        self.dialogue_box = DialogueBox()
 
     def _load_npcs(self):
         """Loads NPC data from the JSON file and populates the town."""
@@ -212,8 +244,17 @@ class TownState(GameplayState):
 
     def handle_events(self, event):
         super().handle_events(event)
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_e:  # The 'Interact' key
+                if self.dialogue_box.is_active:
+                    self.dialogue_box.advance()
+                elif self.nearby_npc:
+                    self.dialogue_box.start_dialogue(self.nearby_npc)
 
     def update(self, dt):
+        # --- Pause player movement and exits during dialogue ---
+        if self.dialogue_box.is_active:
+            return
         player_speed = 5
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
@@ -228,15 +269,22 @@ class TownState(GameplayState):
         if dx != 0 or dy != 0:
             self.player.move(dx, dy, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
 
-        # Check for player interaction with NPCs
-        collided_npcs = pygame.sprite.spritecollide(
-            self.player, self.town_room.npcs, False
-        )
-        if collided_npcs:
-            npc = collided_npcs[0]
-            print(f"Player is touching {npc.name}!")
-            # NOTE: For a real dialogue system, you'd want to trigger this only
-            # on a key press (e.g., 'E') rather than just collision.
+        # --- Check for nearby NPCs instead of just collision ---
+        self.nearby_npc = None  # Reset each frame
+        for npc in self.town_room.npcs:
+            # Check distance between player and NPC centers
+            distance = pygame.math.Vector2(self.player.rect.center).distance_to(
+                npc.rect.center
+            )
+            if distance < 60:  # Interaction radius of 60 pixels
+                self.nearby_npc = npc
+                break  # Found the closest one, no need to check others
+
+        if self.nearby_npc:
+            self.interaction_hint.set_text(f"[E] Talk to {self.nearby_npc.name}")
+            self.interaction_hint.is_visible = True
+        else:
+            self.interaction_hint.is_visible = False
 
         exit_direction = None
         if self.player.rect.top <= 0:
@@ -258,6 +306,9 @@ class TownState(GameplayState):
         screen.fill(C.ROOM_COLOR)
         self.town_room.draw(screen)
         self.draw_hud(screen)
+        # Draw the UI elements
+        self.interaction_hint.draw(screen)
+        self.dialogue_box.draw(screen)
 
 
 class OverworldState(GameplayState):
@@ -306,17 +357,27 @@ class OverworldState(GameplayState):
             dy = player_speed
         if dx != 0 or dy != 0:
             self.player_avatar.move_ip(dx, dy)
+        # --- Dynamic entry direction logic ---
         for name, data in self.pois.items():
             if self.player_avatar.colliderect(data["rect"]):
-                # --- Pass entry direction to the next state ---
-                # Determine which direction we entered the POI from
-                # This logic helps place the player correctly in the new state
-                # For simplicity, we'll map POIs to cardinal entry points
-                if name == "Town":
-                    self.persistent_data["entry_direction"] = "NORTH"
-                elif name == "Dungeon":
+                if name == "Dungeon":
                     self.persistent_data["entry_direction"] = "WEST"
+                else:
+                    # Calculate the difference vector between centers
+                    dx = self.player_avatar.centerx - data["rect"].centerx
+                    dy = self.player_avatar.centery - data["rect"].centery
 
+                    # Determine primary axis of collision
+                    if abs(dx) > abs(dy):  # Horizontal collision
+                        if dx > 0:
+                            self.persistent_data["entry_direction"] = "EAST"
+                        else:
+                            self.persistent_data["entry_direction"] = "WEST"
+                    else:  # Vertical collision
+                        if dy > 0:
+                            self.persistent_data["entry_direction"] = "SOUTH"
+                        else:
+                            self.persistent_data["entry_direction"] = "NORTH"
                 self.done = True
                 self.next_state = data["target_state"]
 

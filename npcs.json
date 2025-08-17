@@ -2,7 +2,12 @@
     "Town": [
         {
             "name": "Old Villager",
-            "pos": [650, 300]
+            "pos": [650, 300],
+            "dialogue": [
+                "Greetings, traveler.",
+                "The world has grown dark since the curse fell upon your family...",
+                "Be wary of the dungeon to the east. Vicious creatures lurk within."
+            ]
         }
     ]
 }

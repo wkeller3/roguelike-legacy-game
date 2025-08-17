@@ -14,6 +14,7 @@ class NPC(pygame.sprite.Sprite):
         # Configure from the data dictionary
         self.name = template_data["name"]
         pos = tuple(template_data["pos"])
+        self.dialogue = template_data.get("dialogue", ["..."])
 
         # Visual representation
         self.image = pygame.Surface((32, 32))
