@@ -404,10 +404,19 @@ class ExploringState(GameplayState):
         self.current_room.add_player(self.player)
         self.show_map = False
         # Reposition player based on how they entered the dungeon
-        entry_point = self.persistent_data.get("entry_direction", "WEST")
-        if entry_point == "WEST":
-            self.player.rect.midleft = (20, C.SCREEN_HEIGHT / 2)
-        # Can add other entry points later
+        entry_point = self.persistent_data.get("entry_direction")
+        if entry_point:
+            # If it exists, position the player accordingly
+            if entry_point == "NORTH":
+                self.player.rect.midtop = (C.SCREEN_WIDTH / 2, 20)
+            elif entry_point == "SOUTH":
+                self.player.rect.midbottom = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT - 20)
+            elif entry_point == "WEST":
+                self.player.rect.midleft = (20, C.SCREEN_HEIGHT / 2)
+            elif entry_point == "EAST":
+                self.player.rect.midright = (C.SCREEN_WIDTH - 20, C.SCREEN_HEIGHT / 2)
+            # Now, remove the key so this logic doesn't run again after a battle
+            del self.persistent_data["entry_direction"]
 
     def handle_events(self, event):
         super().handle_events(event)
@@ -496,10 +505,17 @@ class CombatState(GameplayState):
         self.active_enemy = self.persistent_data["active_enemy"]
         self.combat_log = [f"You encounter an Enemy!"]
         self.current_turn = "PLAYER"
+        self.phase = "ACTIVE"
 
     def handle_events(self, event):
         super().handle_events(event)
-        if self.current_turn == "PLAYER":
+
+        if self.phase == "VICTORY":
+            if event.type == pygame.KEYDOWN:
+                self.done = True
+                self.next_state = "EXPLORING"
+
+        elif self.phase == "ACTIVE" and self.current_turn == "PLAYER":
             player_action = None
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
@@ -518,25 +534,35 @@ class CombatState(GameplayState):
                     self.current_turn = "ENEMY"
             if player_action:
                 self.combat_log.append(player_action["message"])
-                self.active_enemy.health -= player_action["damage"]
+                # Clamp enemy health at 0
+                damage_dealt = player_action["damage"]
+                self.active_enemy.health = max(
+                    0, self.active_enemy.health - damage_dealt
+                )
                 self.current_turn = "ENEMY"
 
     def update(self, dt):
+        # Don't update logic if the fight is already won
+        if self.phase == "VICTORY":
+            return
+
         if self.player.health <= 0:
             self.combat_log.append("You have been defeated!")
             self.done = True
             self.next_state = "GAME_OVER"
             return
+
         if self.active_enemy.health <= 0:
+            # Switch to victory phase instead of ending the state
+            self.phase = "VICTORY"
             gold_to_add = random.randint(*self.active_enemy.gold_drop_range)
             self.player.gold += gold_to_add
             self.combat_log.append(
                 f"The {self.active_enemy.name} is defeated! You find {gold_to_add} gold."
             )
             self.active_enemy.kill()
-            self.done = True
-            self.next_state = "EXPLORING"
             return
+
         if self.current_turn == "ENEMY":
             pygame.time.wait(500)
             if self.active_enemy.is_charging_attack:
@@ -553,15 +579,18 @@ class CombatState(GameplayState):
                     self.active_enemy.is_charging_attack = True
                     attack_result = {
                         "damage": 0,
-                        "message": "The Goblin growls, preparing a vicious bite!",
+                        "message": f"The {self.active_enemy.name} growls, preparing a vicious bite!",
                     }
             damage_taken = attack_result["damage"]
             if self.player.is_defending:
                 damage_taken = damage_taken // 2
                 attack_result["message"] += " (Blocked!)"
                 self.player.is_defending = False
+
             self.combat_log.append(attack_result["message"])
-            self.player.health -= damage_taken
+            # Clamp player health at 0
+            self.player.health = max(0, self.player.health - damage_taken)
+
             if not self.active_enemy.is_charging_attack:
                 self.current_turn = "PLAYER"
 
@@ -575,10 +604,19 @@ class CombatState(GameplayState):
         screen.blit(overlay, (0, 0))
         # Draw HUD (player and enemy stats)
         self.draw_hud(screen)
-        enemy_health_text = self.font_text.render(
-            f"Enemy Health: {self.active_enemy.health}", True, C.RED
-        )
-        screen.blit(enemy_health_text, (C.SCREEN_WIDTH - 250, 20))
+
+        # We need a font for the VICTORY text
+        font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
+
+        # Only show the enemy health if they are still active
+        if self.phase == "ACTIVE":
+            enemy_health_text = self.font_text.render(
+                f"{self.active_enemy.name} Health: {self.active_enemy.health}",
+                True,
+                C.RED,
+            )
+            screen.blit(enemy_health_text, (C.SCREEN_WIDTH - 250, 20))
+
         # Combat Log (Bottom-Left)
         log_start_x = 20
         log_start_y = C.SCREEN_HEIGHT - 150
@@ -588,14 +626,31 @@ class CombatState(GameplayState):
             y_pos = log_start_y + i * line_height
             log_text = self.font_text.render(message, True, C.WHITE)
             screen.blit(log_text, (log_start_x, y_pos))
-        # Action Menu (Bottom-Right)
-        if self.current_turn == "PLAYER":
+
+        # Action Menu (Bottom-Right) - only if combat is active
+        if self.phase == "ACTIVE" and self.current_turn == "PLAYER":
             menu_x = C.SCREEN_WIDTH - 250
             menu_y = C.SCREEN_HEIGHT - 120
             actions = ["[1] Attack", "[2] Power Attack", "[3] Defend"]
             for i, action in enumerate(actions):
                 action_text = self.font_text.render(action, True, C.WHITE)
                 screen.blit(action_text, (menu_x, menu_y + i * 30))
+
+        # --- NEW: Victory Message ---
+        if self.phase == "VICTORY":
+            victory_text = font_title.render("VICTORY", True, (255, 223, 0))
+            text_rect = victory_text.get_rect(
+                center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2 - 50)
+            )
+            screen.blit(victory_text, text_rect)
+
+            continue_text = self.font_text.render(
+                "Press any key to continue...", True, C.WHITE
+            )
+            continue_rect = continue_text.get_rect(
+                center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2 + 10)
+            )
+            screen.blit(continue_text, continue_rect)
 
 
 class GameOverState(GameplayState):
