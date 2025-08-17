@@ -17,6 +17,7 @@ class Room:
         # These sprite groups will contain all the objects in this room
         self.all_sprites = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
+        self.npcs = pygame.sprite.Group()
         self.loot = pygame.sprite.Group()  # For later use
 
         # --- Only spawn enemies in dungeon rooms ---
@@ -64,3 +65,8 @@ class Room:
     def remove_player(self, player):
         """Removes the player sprite from this room's sprite group."""
         self.all_sprites.remove(player)
+
+    def add_npc(self, npc):
+        """Adds an NPC to the room's sprite groups."""
+        self.all_sprites.add(npc)
+        self.npcs.add(npc)

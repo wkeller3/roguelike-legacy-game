@@ -4,10 +4,12 @@ import pygame
 import random
 import constants as C
 from hero import Hero
+from npc import NPC
 from gamemap import GameMap
 from combat import resolve_attack
 from map_view import draw_map
 from room import Room
+import json
 
 
 # ... (BaseState and CharCreationState are unchanged) ...
@@ -191,7 +193,22 @@ class TownState(GameplayState):
         super().__init__(persistent_data)
         self.town_room = Room(C.SCREEN_WIDTH, C.SCREEN_HEIGHT, room_type="town")
         self.town_room.add_player(self.player)
+        # --- Load NPCs from the data file ---
+        self._load_npcs()
         self.player.rect.center = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2)
+
+    def _load_npcs(self):
+        """Loads NPC data from the JSON file and populates the town."""
+        with open("npcs.json", "r") as f:
+            all_npc_data = json.load(f)
+
+        # Get the list of NPCs specifically for the "Town" location
+        town_npcs = all_npc_data.get("Town", [])
+
+        for npc_data in town_npcs:
+            # Create an NPC instance from the template data
+            npc = NPC(template_data=npc_data)
+            self.town_room.add_npc(npc)
 
     def handle_events(self, event):
         super().handle_events(event)
@@ -210,6 +227,16 @@ class TownState(GameplayState):
             dy = player_speed
         if dx != 0 or dy != 0:
             self.player.move(dx, dy, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
+
+        # Check for player interaction with NPCs
+        collided_npcs = pygame.sprite.spritecollide(
+            self.player, self.town_room.npcs, False
+        )
+        if collided_npcs:
+            npc = collided_npcs[0]
+            print(f"Player is touching {npc.name}!")
+            # NOTE: For a real dialogue system, you'd want to trigger this only
+            # on a key press (e.g., 'E') rather than just collision.
 
         exit_direction = None
         if self.player.rect.top <= 0:

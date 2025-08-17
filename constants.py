@@ -10,7 +10,8 @@ BLACK = (0, 0, 0)
 GRAY = (150, 150, 150)
 RED = (255, 100, 100)
 GREEN = (100, 200, 100)
-BLUE = (150, 200, 255)  # Player color
+BLUE = (150, 200, 255)
+YELLOW = (255, 255, 100)
 
 # Entity and Environment Colors
 PLAYER_COLOR = (150, 200, 255)
