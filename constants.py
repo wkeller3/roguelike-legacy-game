@@ -1,0 +1,38 @@
+# constants.py
+
+# --- SCREEN ---
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+
+# --- COLORS ---
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (150, 150, 150)
+RED = (255, 100, 100)
+GREEN = (100, 200, 100)
+BLUE = (150, 200, 255)  # Player color
+
+# Entity and Environment Colors
+PLAYER_COLOR = (150, 200, 255)
+GOBLIN_COLOR = (255, 100, 100)
+ORC_COLOR = (100, 200, 100)
+ROOM_COLOR = (50, 50, 50)
+
+
+# --- FONT SIZES ---
+FONT_SIZE_TEXT = 28
+FONT_SIZE_HEADER = 36
+FONT_SIZE_TITLE = 48
+
+
+# --- MAP VIEW ---
+# Map Colors
+MAP_BG = (20, 20, 30, 220)
+MAP_EXPLORED = (100, 100, 120)
+MAP_PLAYER = (100, 255, 100)
+MAP_CONNECTION = (140, 140, 160)
+MAP_UNEXPLORED_PATH = (80, 80, 90)
+
+# Map Layout
+MAP_ROOM_SIZE = 20
+MAP_ROOM_MARGIN = 10

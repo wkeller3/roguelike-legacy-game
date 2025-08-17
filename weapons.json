@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Broadsword",
+    "base_damage": [8, 12],
+    "crit_chance": 0.05,
+    "crit_multiplier": 1.5
+  },
+  {
+    "name": "Twin Daggers",
+    "base_damage": [4, 6],
+    "crit_chance": 0.15,
+    "crit_multiplier": 1.5
+  },
+  {
+    "name": "Iron Staff",
+    "base_damage": [6, 8],
+    "crit_chance": 0.05,
+    "crit_multiplier": 2.0
+  }
+]
