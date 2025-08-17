@@ -745,3 +745,34 @@ class CharacterSheetState(GameplayState):
         self.previous_state.draw(screen)
         # Draw the character sheet on top
         self.sheet_ui.draw(screen)
+
+
+# A mapping of state names to their respective classes
+STATE_MAP = {
+    "CHAR_CREATION": CharCreationState,
+    "TOWN": TownState,
+    "OVERWORLD": OverworldState,
+    "EXPLORING": ExploringState,
+    "COMBAT": CombatState,
+    "GAME_OVER": GameOverState,
+    "CHAR_SHEET": CharacterSheetState,
+}
+
+
+def create_state(state_name, game, persistent_data=None, initial_data=None):
+    """
+    Factory function to create state instances.
+
+    Args:
+        state_name (str): The name of the state to create (must be a key in STATE_MAP).
+        game (Game): The main game object instance.
+        persistent_data (dict): Data that persists between states (player, map, etc.).
+        initial_data (dict): Special data for states that don't use persistent_data, like CharCreationState.
+    """
+    state_class = STATE_MAP[state_name]
+
+    # CharCreationState has a unique constructor signature
+    if state_name == "CHAR_CREATION":
+        return state_class(game, initial_data)
+    else:
+        return state_class(game, persistent_data)

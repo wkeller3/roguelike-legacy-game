@@ -5,15 +5,7 @@ import json
 import constants as C
 from weapon import Weapon
 from ui_elements import Button
-from states import (
-    CharCreationState,
-    ExploringState,
-    CombatState,
-    GameOverState,
-    OverworldState,
-    TownState,
-    CharacterSheetState,
-)
+from states import create_state
 from hero import Hero
 
 # --- Developer flag to bypass character creation for quick testing ---
@@ -34,24 +26,11 @@ class Game:
         self.running = True
 
         self.state_stack = []
-        self.states = {}
         self.current_state = None
         self.persistent_data = {}
 
     def setup_states(self):
         """Initializes all the game states and sets the starting state."""
-        # --- Define ALL possible states first ---
-        self.states = {
-            "TOWN": TownState,
-            "CHAR_CREATION": CharCreationState,
-            "EXPLORING": ExploringState,
-            "COMBAT": CombatState,
-            "GAME_OVER": GameOverState,
-            "OVERWORLD": OverworldState,
-            "CHAR_SHEET": CharacterSheetState,
-        }
-
-        # --- THEN, decide which state to start in ---
         if DEV_SKIP_CHAR_CREATION:
             player = Hero(
                 first_name="Dev",
@@ -68,11 +47,11 @@ class Game:
             )
 
             persistent_data = {"player": player}
-            self.state_stack.append(self.states["TOWN"](self, persistent_data))
+            self.state_stack.append(create_state("TOWN", self, persistent_data))
         else:
             char_creation_data = self.load_char_creation_data()
             self.state_stack.append(
-                self.states["CHAR_CREATION"](self, char_creation_data)
+                create_state("CHAR_CREATION", self, initial_data=char_creation_data)
             )
 
     def load_char_creation_data(self):
@@ -133,8 +112,8 @@ class Game:
 
     def push_state(self, state_name):
         """Pushes a new state onto the stack."""
-        new_state = self.states[state_name](
-            self, self.get_active_state().persistent_data
+        new_state = create_state(
+            state_name, self, persistent_data=self.get_active_state().persistent_data
         )
         self.state_stack.append(new_state)
 
@@ -144,7 +123,7 @@ class Game:
             self.state_stack.pop()
 
     def flip_state(self):
-        """Transitions to a completely new state, clearing the stack."""
+        """Transitions to a completely new state, clearing the stack, using the factory."""
         next_state_name = self.get_active_state().next_state
         persistent_data = self.get_active_state().persistent_data
 
@@ -152,9 +131,13 @@ class Game:
 
         if next_state_name == "CHAR_CREATION":
             char_data = self.load_char_creation_data()
-            self.state_stack.append(self.states[next_state_name](self, char_data))
+            self.state_stack.append(
+                create_state("CHAR_CREATION", self, initial_data=char_data)
+            )
         else:
-            self.state_stack.append(self.states[next_state_name](self, persistent_data))
+            self.state_stack.append(
+                create_state(next_state_name, self, persistent_data)
+            )
 
     def run(self):
         """The main game loop."""
