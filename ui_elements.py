@@ -197,3 +197,44 @@ class DialogueBox:
             # We store the actual rendered rect for click detection
             rendered_rect = screen.blit(choice_surf, choice_pos)
             self.choice_rects.append(rendered_rect)
+
+
+class CharacterSheet:
+    """A UI component that draws all player information."""
+
+    def __init__(self, player):
+        self.player = player
+        self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
+        self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
+        self.rect = pygame.Rect(100, 50, C.SCREEN_WIDTH - 200, C.SCREEN_HEIGHT - 100)
+
+    def draw(self, screen):
+        # Draw background panel
+        pygame.draw.rect(screen, (30, 30, 40, 230), self.rect)
+        pygame.draw.rect(screen, C.WHITE, self.rect, 2)
+
+        # Name
+        name_text = self.font_header.render(
+            f"{self.player.first_name} {self.player.family_name}", True, C.WHITE
+        )
+        screen.blit(name_text, (self.rect.x + 20, self.rect.y + 20))
+
+        # Stats
+        y_offset = self.rect.y + 80
+        stats_header = self.font_header.render("Attributes", True, C.WHITE)
+        screen.blit(stats_header, (self.rect.x + 20, y_offset))
+        for i, (stat, value) in enumerate(self.player.stats.items()):
+            stat_text = self.font_text.render(f"{stat}: {value}", True, C.GRAY)
+            screen.blit(stat_text, (self.rect.x + 30, y_offset + 40 + i * 30))
+
+        # Gold and Inventory
+        y_offset = self.rect.y + 250
+        gold_text = self.font_text.render(
+            f"Gold: {self.player.gold}", True, (255, 223, 0)
+        )  # Gold color
+        screen.blit(gold_text, (self.rect.x + 30, y_offset))
+
+        inv_header = self.font_header.render("Inventory", True, C.WHITE)
+        screen.blit(inv_header, (self.rect.x + 300, self.rect.y + 80))
+        inv_text = self.font_text.render("Empty", True, C.GRAY)
+        screen.blit(inv_text, (self.rect.x + 310, self.rect.y + 120))

@@ -9,6 +9,7 @@
     },
     "speed_range": [2.0, 2.5],
     "sight_radius": 300,
+    "gold_drop_range": [5, 15],
     "weapon": {
       "name": "Rusty Dagger",
       "base_damage": [3, 6],
@@ -26,6 +27,7 @@
     },
     "speed_range": [1.2, 1.6],
     "sight_radius": 200,
+    "gold_drop_range": [20, 35],
     "weapon": {
       "name": "Crude Axe",
       "base_damage": [5, 10],

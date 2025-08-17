@@ -43,6 +43,7 @@ class Hero(pygame.sprite.Sprite):
         # We will set these manually after creation
         self.health = 100
         self.max_health = 100
+        self.gold = 0
         self.stats = {"Strength": 1, "Dexterity": 1, "Intelligence": 1, "Luck": 1}
         possible_traits = ["Brave", "Cautious", "Avaricious", "Kind", "Clever"]
         self.traits = []  # Traits can be added later in the game

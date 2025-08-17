@@ -12,12 +12,13 @@ from states import (
     GameOverState,
     OverworldState,
     TownState,
+    CharacterSheetState,
 )
 from hero import Hero
 from gamemap import GameMap
 
 # --- Developer flag to bypass character creation for quick testing ---
-DEV_SKIP_CHAR_CREATION = True
+DEV_SKIP_CHAR_CREATION = False
 
 
 class Game:
@@ -33,6 +34,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
 
+        self.state_stack = []
         self.states = {}
         self.current_state = None
         self.persistent_data = {}
@@ -47,6 +49,7 @@ class Game:
             "COMBAT": CombatState,
             "GAME_OVER": GameOverState,
             "OVERWORLD": OverworldState,
+            "CHAR_SHEET": CharacterSheetState,
         }
 
         # --- THEN, decide which state to start in ---
@@ -68,11 +71,13 @@ class Game:
                 max_rooms=15, screen_width=C.SCREEN_WIDTH, screen_height=C.SCREEN_HEIGHT
             )
 
-            self.persistent_data = {"player": player, "game_map": game_map}
-            self.current_state = self.states["TOWN"](self.persistent_data)
+            persistent_data = {"player": player, "game_map": game_map}
+            self.state_stack.append(self.states["TOWN"](self, persistent_data))
         else:
             char_creation_data = self.load_char_creation_data()
-            self.current_state = self.states["CHAR_CREATION"](char_creation_data)
+            self.state_stack.append(
+                self.states["CHAR_CREATION"](self, char_creation_data)
+            )
 
     def load_char_creation_data(self):
         """Loads and prepares all data needed for the character creation screen."""
@@ -126,19 +131,33 @@ class Game:
         )
         return data
 
+    def get_active_state(self):
+        return self.state_stack[-1]
+
+    def push_state(self, state_name):
+        """Pushes a new state onto the stack."""
+        new_state = self.states[state_name](
+            self, self.get_active_state().persistent_data
+        )
+        self.state_stack.append(new_state)
+
+    def pop_state(self):
+        """Pops the top state off the stack."""
+        if len(self.state_stack) > 1:
+            self.state_stack.pop()
+
     def flip_state(self):
-        """Handles the transition from one state to the next."""
-        next_state_name = self.current_state.next_state
-        self.current_state.done = False
+        """Transitions to a completely new state, clearing the stack."""
+        next_state_name = self.get_active_state().next_state
+        persistent_data = self.get_active_state().persistent_data
+
+        self.state_stack = []  # Clear the stack
 
         if next_state_name == "CHAR_CREATION":
-            # If restarting, we need to reload the initial data
-            char_creation_data = self.load_char_creation_data()
-            self.current_state = self.states[next_state_name](char_creation_data)
+            char_data = self.load_char_creation_data()
+            self.state_stack.append(self.states[next_state_name](self, char_data))
         else:
-            # For all other transitions, pass the persistent data along
-            self.persistent_data = self.current_state.persistent_data
-            self.current_state = self.states[next_state_name](self.persistent_data)
+            self.state_stack.append(self.states[next_state_name](self, persistent_data))
 
     def run(self):
         """The main game loop."""
@@ -147,16 +166,17 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                self.current_state.handle_events(event)
+                self.get_active_state().handle_events(event)
 
-            self.current_state.update(dt)
+            self.get_active_state().update(dt)
 
-            if self.current_state.done:
-                self.flip_state()
-            if self.current_state.quit:
+            if self.get_active_state().quit:
                 self.running = False
+            elif self.get_active_state().done:
+                self.flip_state()
 
-            self.current_state.draw(self.screen)
+            self.get_active_state().draw(self.screen)
+
             pygame.display.flip()
             dt = self.clock.tick(60) / 1000
 

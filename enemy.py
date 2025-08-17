@@ -32,6 +32,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = random.uniform(*template_data["speed_range"])
         self.sight_radius = template_data["sight_radius"]
         self.chase_radius = self.sight_radius + 50
+        self.gold_drop_range = template_data.get("gold_drop_range", [1, 1])
 
         # Equipment
         w_data = template_data["weapon"]

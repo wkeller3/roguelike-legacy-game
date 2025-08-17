@@ -10,21 +10,21 @@ from combat import resolve_attack
 from map_view import draw_map
 from room import Room
 import json
-from ui_elements import Button, TextBox, DialogueBox
+from ui_elements import Button, TextBox, DialogueBox, CharacterSheet
 
 
-# ... (BaseState and CharCreationState are unchanged) ...
 class BaseState:
     """
     A base class for all game states. It provides a standard interface
     for handling events, updating logic, and drawing to the screen.
     """
 
-    def __init__(self):
+    def __init__(self, game, persistent_data):
+        self.game = game
+        self.persistent_data = persistent_data
         self.done = False
         self.quit = False
         self.next_state = None
-        self.persistent_data = {}
 
     def handle_events(self, event):
         """Handle a single user event. Called for each event in the event queue."""
@@ -44,8 +44,8 @@ class CharCreationState(BaseState):
     and weapon selection.
     """
 
-    def __init__(self, char_creation_data):
-        super().__init__()
+    def __init__(self, game, char_creation_data):
+        super().__init__(game, {})
         self.data = char_creation_data
         self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
         self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
@@ -160,16 +160,16 @@ class GameplayState(BaseState):
     (player, map, etc.), to avoid code duplication.
     """
 
-    def __init__(self, persistent_data):
-        super().__init__()
-        self.persistent_data = persistent_data
-        self.player = self.persistent_data["player"]
-        self.game_map = self.persistent_data["game_map"]
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
+        self.player = self.persistent_data.get("player")
+        self.game_map = self.persistent_data.get("game_map")
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
 
     def draw_hud(self, screen):
         """Draws the common Heads-Up Display."""
         y_offset = 20
+        # Health
         health_color = C.GREEN if not self.player.is_defending else (100, 200, 255)
         screen.blit(
             self.font_text.render(
@@ -179,14 +179,12 @@ class GameplayState(BaseState):
             ),
             (20, y_offset),
         )
-        y_offset += 25
-        screen.blit(self.font_text.render("Stats:", True, C.GRAY), (20, y_offset))
-        for stat, value in self.player.stats.items():
-            y_offset += 25
-            screen.blit(
-                self.font_text.render(f"- {stat}: {value}", True, C.WHITE),
-                (30, y_offset),
-            )
+        # Gold
+        y_offset += 30
+        gold_text = self.font_text.render(
+            f"Gold: {self.player.gold}", True, (255, 223, 0)
+        )
+        screen.blit(gold_text, (20, y_offset))
 
 
 class TownState(GameplayState):
@@ -195,8 +193,8 @@ class TownState(GameplayState):
     with no enemies, and now with interactable NPCs.
     """
 
-    def __init__(self, persistent_data):
-        super().__init__(persistent_data)
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
         self.town_room = Room(C.SCREEN_WIDTH, C.SCREEN_HEIGHT, room_type="town")
         self.town_room.add_player(self.player)
 
@@ -254,6 +252,8 @@ class TownState(GameplayState):
                 if self.nearby_npc:
                     # Start dialogue if not already active
                     self.dialogue_box.start_dialogue(self.nearby_npc)
+            if event.key == pygame.K_c:
+                self.game.push_state("CHAR_SHEET")
 
     def update(self, dt):
         # --- Pause player movement and exits during dialogue ---
@@ -316,8 +316,8 @@ class TownState(GameplayState):
 
 
 class OverworldState(GameplayState):
-    def __init__(self, persistent_data):
-        super().__init__(persistent_data)
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
 
         self.pois = {
             "Town": {"rect": pygame.Rect(180, 280, 100, 80), "target_state": "TOWN"},
@@ -398,8 +398,8 @@ class OverworldState(GameplayState):
 class ExploringState(GameplayState):
     """The state for exploring the dungeon, moving between rooms."""
 
-    def __init__(self, persistent_data):
-        super().__init__(persistent_data)
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
         self.current_room = self.game_map.get_current_room()
         self.current_room.add_player(self.player)
         self.show_map = False
@@ -411,8 +411,11 @@ class ExploringState(GameplayState):
 
     def handle_events(self, event):
         super().handle_events(event)
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
-            self.show_map = not self.show_map
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_m:
+                self.show_map = not self.show_map
+            elif event.key == pygame.K_c:  # 'C' for Character
+                self.game.push_state("CHAR_SHEET")
 
     def update(self, dt):
         if self.show_map:
@@ -487,8 +490,8 @@ class ExploringState(GameplayState):
 class CombatState(GameplayState):
     """The state for turn-based combat."""
 
-    def __init__(self, persistent_data):
-        super().__init__(persistent_data)
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
         self.current_room = self.game_map.get_current_room()
         self.active_enemy = self.persistent_data["active_enemy"]
         self.combat_log = [f"You encounter an Enemy!"]
@@ -525,7 +528,11 @@ class CombatState(GameplayState):
             self.next_state = "GAME_OVER"
             return
         if self.active_enemy.health <= 0:
-            self.combat_log.append("Enemy defeated!")
+            gold_to_add = random.randint(*self.active_enemy.gold_drop_range)
+            self.player.gold += gold_to_add
+            self.combat_log.append(
+                f"The {self.active_enemy.name} is defeated! You find {gold_to_add} gold."
+            )
             self.active_enemy.kill()
             self.done = True
             self.next_state = "EXPLORING"
@@ -596,8 +603,8 @@ class GameOverState(GameplayState):
     A state that is shown when the player's health reaches zero.
     """
 
-    def __init__(self, persistent_data):
-        super().__init__(persistent_data)
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
         self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
 
@@ -639,3 +646,25 @@ class GameOverState(GameplayState):
             center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT - 100)
         )
         screen.blit(instr_text, instr_rect)
+
+
+class CharacterSheetState(GameplayState):
+    """A pause state that displays detailed player information."""
+
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
+        # The previous state, which will be the background
+        self.previous_state = game.state_stack[-1]
+        self.sheet_ui = CharacterSheet(self.player)
+
+    def handle_events(self, event):
+        super().handle_events(event)
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_c or event.key == pygame.K_ESCAPE:
+                self.game.pop_state()
+
+    def draw(self, screen):
+        # Draw the state below it in the stack as the background
+        self.previous_state.draw(screen)
+        # Draw the character sheet on top
+        self.sheet_ui.draw(screen)
