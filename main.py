@@ -18,7 +18,7 @@ from hero import Hero
 from gamemap import GameMap
 
 # --- Developer flag to bypass character creation for quick testing ---
-DEV_SKIP_CHAR_CREATION = False
+DEV_SKIP_CHAR_CREATION = True
 
 
 class Game:
@@ -41,7 +41,7 @@ class Game:
 
     def setup_states(self):
         """Initializes all the game states and sets the starting state."""
-        # --- FIX: Define ALL possible states first ---
+        # --- Define ALL possible states first ---
         self.states = {
             "TOWN": TownState,
             "CHAR_CREATION": CharCreationState,
@@ -83,14 +83,15 @@ class Game:
         """Loads and prepares all data needed for the character creation screen."""
         with open("weapons.json", "r") as f:
             weapons_data = json.load(f)
+        starter_weapon_ids = ["broadsword", "twin_daggers", "iron_staff"]
         weapon_objects = [
             Weapon(
-                name=d["name"],
-                base_damage=tuple(d["base_damage"]),
-                crit_chance=d["crit_chance"],
-                crit_multiplier=d["crit_multiplier"],
+                name=weapons_data[w_id]["name"],
+                base_damage=tuple(weapons_data[w_id]["base_damage"]),
+                crit_chance=weapons_data[w_id]["crit_chance"],
+                crit_multiplier=weapons_data[w_id]["crit_multiplier"],
             )
-            for d in weapons_data
+            for w_id in starter_weapon_ids
         ]
         data = {
             "name": "",

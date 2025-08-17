@@ -219,7 +219,7 @@ class CharacterSheet:
         )
         screen.blit(name_text, (self.rect.x + 20, self.rect.y + 20))
 
-        # Stats
+        # Attributes Section (Left Column)
         y_offset = self.rect.y + 80
         stats_header = self.font_header.render("Attributes", True, C.WHITE)
         screen.blit(stats_header, (self.rect.x + 20, y_offset))
@@ -227,14 +227,53 @@ class CharacterSheet:
             stat_text = self.font_text.render(f"{stat}: {value}", True, C.GRAY)
             screen.blit(stat_text, (self.rect.x + 30, y_offset + 40 + i * 30))
 
-        # Gold and Inventory
-        y_offset = self.rect.y + 250
+        # Gold Display (Left Column, below Attributes)
         gold_text = self.font_text.render(
             f"Gold: {self.player.gold}", True, (255, 223, 0)
-        )  # Gold color
-        screen.blit(gold_text, (self.rect.x + 30, y_offset))
+        )
+        screen.blit(gold_text, (self.rect.x + 30, y_offset + 40 + 5 * 30))
 
+        # --- Equipped Weapon Section (Right Column) ---
+        x_offset = self.rect.x + 300
+        y_offset = self.rect.y + 80
+
+        weapon_header = self.font_header.render("Equipped Weapon", True, C.WHITE)
+        screen.blit(weapon_header, (x_offset, y_offset))
+
+        if self.player.equipped_weapon:
+            weapon = self.player.equipped_weapon
+            y_offset += 40
+
+            # Weapon Name
+            name_text = self.font_text.render(f"{weapon.name}", True, C.WHITE)
+            screen.blit(name_text, (x_offset + 10, y_offset))
+            y_offset += 30
+
+            # Weapon Stats
+            dmg_text = self.font_text.render(
+                f"Damage: {weapon.base_damage[0]}-{weapon.base_damage[1]}", True, C.GRAY
+            )
+            screen.blit(dmg_text, (x_offset + 10, y_offset))
+            y_offset += 30
+
+            crit_text = self.font_text.render(
+                f"Crit Chance: {int(weapon.crit_chance * 100)}%", True, C.GRAY
+            )
+            screen.blit(crit_text, (x_offset + 10, y_offset))
+            y_offset += 30
+
+            crit_mult_text = self.font_text.render(
+                f"Crit Multiplier: x{weapon.crit_multiplier}", True, C.GRAY
+            )
+            screen.blit(crit_mult_text, (x_offset + 10, y_offset))
+        else:
+            # If no weapon is equipped
+            no_weapon_text = self.font_text.render("None", True, C.GRAY)
+            screen.blit(no_weapon_text, (x_offset + 10, y_offset + 40))
+
+        # --- Inventory Section (Right Column, moved down) ---
+        y_offset = self.rect.y + 280  # Adjusted y-position
         inv_header = self.font_header.render("Inventory", True, C.WHITE)
-        screen.blit(inv_header, (self.rect.x + 300, self.rect.y + 80))
+        screen.blit(inv_header, (x_offset, y_offset))
         inv_text = self.font_text.render("Empty", True, C.GRAY)
-        screen.blit(inv_text, (self.rect.x + 310, self.rect.y + 120))
+        screen.blit(inv_text, (x_offset + 10, y_offset + 40))

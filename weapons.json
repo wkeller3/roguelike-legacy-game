@@ -1,20 +1,32 @@
-[
-  {
+{
+  "broadsword": {
     "name": "Broadsword",
     "base_damage": [8, 12],
     "crit_chance": 0.05,
     "crit_multiplier": 1.5
   },
-  {
+  "twin_daggers": {
     "name": "Twin Daggers",
     "base_damage": [4, 6],
     "crit_chance": 0.15,
     "crit_multiplier": 1.5
   },
-  {
+  "iron_staff": {
     "name": "Iron Staff",
     "base_damage": [6, 8],
     "crit_chance": 0.05,
     "crit_multiplier": 2.0
+  },
+  "rusty_dagger": {
+    "name": "Rusty Dagger",
+    "base_damage": [3, 6],
+    "crit_chance": 0.1,
+    "crit_multiplier": 1.5
+  },
+  "crude_axe": {
+    "name": "Crude Axe",
+    "base_damage": [5, 10],
+    "crit_chance": 0.05,
+    "crit_multiplier": 1.5
   }
-]
+}

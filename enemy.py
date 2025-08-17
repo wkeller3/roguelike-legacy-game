@@ -12,7 +12,7 @@ class Enemy(pygame.sprite.Sprite):
     All enemies share this same class and logic.
     """
 
-    def __init__(self, pos_x, pos_y, template_data):
+    def __init__(self, pos_x, pos_y, template_data, weapon):
         super().__init__()
 
         # --- Configure from Template ---
@@ -35,13 +35,7 @@ class Enemy(pygame.sprite.Sprite):
         self.gold_drop_range = template_data.get("gold_drop_range", [1, 1])
 
         # Equipment
-        w_data = template_data["weapon"]
-        self.equipped_weapon = Weapon(
-            name=w_data["name"],
-            base_damage=tuple(w_data["base_damage"]),
-            crit_chance=w_data["crit_chance"],
-            crit_multiplier=w_data["crit_multiplier"],
-        )
+        self.equipped_weapon = weapon
 
         # Shared AI and Combat State
         self.state = "WANDERING"

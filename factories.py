@@ -1,10 +1,25 @@
 # factories.py
 import json
 from enemy import Enemy
+from weapon import Weapon
 
-# --- Load all enemy data from the JSON file at startup ---
+# --- Load all weapon and enemy data at startup ---
+with open("weapons.json", "r") as f:
+    WEAPON_TEMPLATES_DATA = json.load(f)
+
 with open("enemies.json", "r") as f:
     ENEMY_TEMPLATES = json.load(f)
+
+# Create a dictionary of Weapon objects, ready to be used
+WEAPON_TEMPLATES = {
+    w_id: Weapon(
+        name=w_data["name"],
+        base_damage=tuple(w_data["base_damage"]),
+        crit_chance=w_data["crit_chance"],
+        crit_multiplier=w_data["crit_multiplier"],
+    )
+    for w_id, w_data in WEAPON_TEMPLATES_DATA.items()
+}
 
 
 def create_enemy(enemy_name, x, y):
@@ -20,7 +35,9 @@ def create_enemy(enemy_name, x, y):
         Enemy: An instance of the Enemy class, configured with the template data.
     """
     template = ENEMY_TEMPLATES[enemy_name]
-    return Enemy(x, y, template)
+    weapon_id = template["weapon"]
+    weapon = WEAPON_TEMPLATES[weapon_id]
+    return Enemy(x, y, template, weapon)
 
 
 def get_available_enemy_types():
