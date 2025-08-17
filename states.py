@@ -222,6 +222,7 @@ class TownState(GameplayState):
         self.interaction_hint = TextBox("", hint_rect, self.font_text)
         self.interaction_hint.is_visible = False
         self.dialogue_box = DialogueBox()
+        self.ui_elements = [self.interaction_hint, self.dialogue_box]
 
     def _load_npcs(self):
         """Loads NPC data from the JSON file and populates the town."""
@@ -307,8 +308,8 @@ class TownState(GameplayState):
         self.town_room.draw(screen)
         self.draw_hud(screen)
         # Draw the UI elements
-        self.interaction_hint.draw(screen)
-        self.dialogue_box.draw(screen)
+        for element in self.ui_elements:
+            element.draw(screen)
 
 
 class OverworldState(GameplayState):

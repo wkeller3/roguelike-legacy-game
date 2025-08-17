@@ -20,11 +20,32 @@ def wrap_text(text, font, max_width):
     return lines
 
 
-class Button:
+class UIElement:
+    def __init__(self, rect):
+        self.rect = rect
+        self.is_visible = True
+
+    def handle_event(self, event):
+        """Base event handler, can be overridden by subclasses."""
+        pass
+
+    def draw(self, screen):
+        """Base draw method, must be overridden by subclasses."""
+        raise NotImplementedError("Each UI element must have its own draw method.")
+
+    def show(self):
+        self.is_visible = True
+
+    def hide(self):
+        self.is_visible = False
+
+
+class Button(UIElement):
     """A clickable button UI element."""
 
     def __init__(self, x, y, width, height, text, font, enabled_color, disabled_color):
-        self.rect = pygame.Rect(x, y, width, height)
+        rect = pygame.Rect(x, y, width, height)
+        super().__init__(rect)
         self.text = text
         self.font = font
         self.enabled_color = enabled_color
@@ -53,12 +74,12 @@ class Button:
         return False
 
 
-class TextBox:
+class TextBox(UIElement):
     """A simple box for displaying a single line of text."""
 
     def __init__(self, text, rect, font, text_color=C.WHITE, bg_color=None):
+        super().__init__(rect)
         self.text = text
-        self.rect = rect
         self.font = font
         self.text_color = text_color
         self.bg_color = bg_color
@@ -79,11 +100,12 @@ class TextBox:
         screen.blit(text_surface, text_rect)
 
 
-class DialogueBox:
+class DialogueBox(UIElement):
     """A UI element for displaying branching conversations with keyboard and mouse support."""
 
     def __init__(self):
-        self.rect = pygame.Rect(50, C.SCREEN_HEIGHT - 170, C.SCREEN_WIDTH - 100, 150)
+        rect = pygame.Rect(50, C.SCREEN_HEIGHT - 170, C.SCREEN_WIDTH - 100, 150)
+        super().__init__(rect)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
         self.font_speaker = pygame.font.Font(None, C.FONT_SIZE_HEADER)
 
@@ -199,14 +221,15 @@ class DialogueBox:
             self.choice_rects.append(rendered_rect)
 
 
-class CharacterSheet:
+class CharacterSheet(UIElement):
     """A UI component that draws all player information."""
 
     def __init__(self, player):
+        rect = pygame.Rect(100, 50, C.SCREEN_WIDTH - 200, C.SCREEN_HEIGHT - 100)
+        super().__init__(rect)
         self.player = player
         self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
-        self.rect = pygame.Rect(100, 50, C.SCREEN_WIDTH - 200, C.SCREEN_HEIGHT - 100)
 
     def draw(self, screen):
         # Draw background panel
