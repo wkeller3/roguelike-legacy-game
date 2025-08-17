@@ -44,16 +44,16 @@ def draw_map(screen, game_map):
 
         pygame.draw.rect(overlay, color, rect)
 
+    # --- Draw the explicit exit icon ---
     exit_map = {"NORTH": (0, -1), "SOUTH": (0, 1), "WEST": (-1, 0), "EAST": (1, 0)}
-    # The exit is at the starting room (0,0) in the direction of entry
     if game_map.entry_direction in exit_map:
         exit_coords = exit_map[game_map.entry_direction]
         rel_x = exit_coords[0] - player_room_coords[0]
         rel_y = exit_coords[1] - player_room_coords[1]
         draw_x = screen_center_x + rel_x * total_tile_size - (room_size / 2)
         draw_y = screen_center_y + rel_y * total_tile_size - (room_size / 2)
-        rect = pygame.Rect(draw_x, draw_y, room_size, room_size)
-        pygame.draw.rect(overlay, C.MAP_EXIT, rect, border_radius=4)
+        exit_rect = pygame.Rect(draw_x, draw_y, room_size, room_size)
+        pygame.draw.rect(overlay, C.MAP_EXIT, exit_rect, border_radius=4)
 
     # --- Pass 2: Draw connections and hints for ALL FOUR directions ---
     for room_coords, rect in room_rects.items():
@@ -120,6 +120,28 @@ def draw_map(screen, game_map):
             start_pos = rect.midleft
             end_pos = (start_pos[0] - room_margin / 2, start_pos[1])
             pygame.draw.line(overlay, C.MAP_UNEXPLORED_PATH, start_pos, end_pos, 2)
+
+    # --- NEW: Pass 3: Draw the line connecting the entrance to the exit ---
+    start_room_rect = room_rects.get((0, 0))
+    if start_room_rect and exit_rect:
+        start_pos = start_room_rect.center
+        end_pos = exit_rect.center
+
+        # Connect the correct edges for a cleaner look
+        if game_map.entry_direction == "NORTH":
+            start_pos = start_room_rect.midtop
+            end_pos = exit_rect.midbottom
+        elif game_map.entry_direction == "SOUTH":
+            start_pos = start_room_rect.midbottom
+            end_pos = exit_rect.midtop
+        elif game_map.entry_direction == "WEST":
+            start_pos = start_room_rect.midleft
+            end_pos = exit_rect.midright
+        elif game_map.entry_direction == "EAST":
+            start_pos = start_room_rect.midright
+            end_pos = exit_rect.midleft
+
+        pygame.draw.line(overlay, C.MAP_EXIT, start_pos, end_pos, 2)
 
     # Blit the final overlay onto the main screen
     screen.blit(overlay, (0, 0))

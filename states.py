@@ -380,7 +380,8 @@ class OverworldState(GameplayState):
                 # Step 2: If entering the dungeon, generate a new map using the direction
                 if name == "Dungeon":
                     new_dungeon_map = GameMap(
-                        max_rooms=15,
+                        min_rooms=C.MIN_ROOMS,
+                        max_rooms=C.MAX_ROOMS,
                         screen_width=C.SCREEN_WIDTH,
                         screen_height=C.SCREEN_HEIGHT,
                         entry_direction=entry_direction,

@@ -55,3 +55,7 @@ MAP_CLEARED = (80, 140, 80)
 MAP_EXIT = (200, 100, 200)
 MAP_ROOM_SIZE = 20
 MAP_ROOM_MARGIN = 10
+
+# --- Dungeon Generation ---
+MIN_ROOMS = 5
+MAX_ROOMS = 30

@@ -9,7 +9,9 @@ class GameMap:
     to create a unique dungeon layout.
     """
 
-    def __init__(self, max_rooms, screen_width, screen_height, entry_direction):
+    def __init__(
+        self, min_rooms, max_rooms, screen_width, screen_height, entry_direction
+    ):
         """
         Args:
             max_rooms (int): The number of rooms to generate for the dungeon.
@@ -17,7 +19,7 @@ class GameMap:
             screen_height (int): Pixel height of the screen.
             entry_direction (str): The side from which the player enters ('NORTH', 'SOUTH', etc.)
         """
-        self.max_rooms = max_rooms
+        self.num_rooms = random.randint(min_rooms, max_rooms)
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.entry_direction = entry_direction  # Store the entry direction
@@ -61,7 +63,7 @@ class GameMap:
         num_rooms_created += 1
         print(f"Created entrance corridor at ({digger_x}, {digger_y})")
 
-        while num_rooms_created < self.max_rooms:
+        while num_rooms_created < self.num_rooms:
             directions = [(0, -1), (0, 1), (1, 0), (-1, 0)]
             (dx, dy) = random.choice(directions)
 
@@ -78,7 +80,9 @@ class GameMap:
 
             digger_x, digger_y = new_x, new_y
 
-        print("--- Dungeon generation complete! ---")
+        print(
+            f"--- Dungeon generation complete! Created a dungeon with {self.num_rooms} rooms ---"
+        )
 
     def get_current_room(self):
         """Returns the Room object for the player's current coordinates."""
