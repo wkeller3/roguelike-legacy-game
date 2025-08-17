@@ -71,7 +71,7 @@ class Game:
         data = {
             "name": "",
             "name_active": False,
-            "points_to_spend": 10,
+            "points_to_spend": C.CHAR_CREATION_STARTING_POINTS,
             "stats": {"Strength": 1, "Dexterity": 1, "Intelligence": 1, "Luck": 1},
             "weapon_choices": weapon_objects,
             "selected_weapon_idx": 0,

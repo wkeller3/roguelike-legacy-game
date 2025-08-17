@@ -91,7 +91,7 @@ class CharCreationState(BaseState):
         if event.type == pygame.KEYDOWN and self.data["name_active"]:
             if event.key == pygame.K_BACKSPACE:
                 self.data["name"] = self.data["name"][:-1]
-            elif len(self.data["name"]) < 15:
+            elif len(self.data["name"]) < C.CHAR_CREATION_MAX_NAME_LENGTH:
                 self.data["name"] += event.unicode
 
     def update(self, dt):
@@ -256,7 +256,7 @@ class TownState(GameplayState):
         # --- Pause player movement and exits during dialogue ---
         if self.dialogue_box.is_active:
             return
-        player_speed = 5
+        player_speed = C.PLAYER_SPEED
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -277,7 +277,7 @@ class TownState(GameplayState):
             distance = pygame.math.Vector2(self.player.rect.center).distance_to(
                 npc.rect.center
             )
-            if distance < 60:  # Interaction radius of 60 pixels
+            if distance < C.NPC_INTERACTION_RADIUS:
                 self.nearby_npc = npc
                 break  # Found the closest one, no need to check others
 
@@ -439,7 +439,7 @@ class ExploringState(GameplayState):
         if self.show_map:
             return  # Pause game when map is open
         # Player movement
-        player_speed = 5
+        player_speed = C.PLAYER_SPEED
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -587,7 +587,7 @@ class CombatState(GameplayState):
             return
 
         if self.current_turn == "ENEMY":
-            pygame.time.wait(500)
+            pygame.time.wait(C.COMBAT_ENEMY_TURN_DELAY)
             if self.active_enemy.is_charging_attack:
                 attack_result = resolve_attack(
                     self.active_enemy, self.player, "vicious_bite"

@@ -104,7 +104,7 @@ class DialogueBox(UIElement):
     """A UI element for displaying branching conversations with keyboard and mouse support."""
 
     def __init__(self):
-        rect = pygame.Rect(50, C.SCREEN_HEIGHT - 170, C.SCREEN_WIDTH - 100, 150)
+        rect = pygame.Rect(C.DIALOGUE_BOX_RECT)
         super().__init__(rect)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
         self.font_speaker = pygame.font.Font(None, C.FONT_SIZE_HEADER)
@@ -225,7 +225,7 @@ class CharacterSheet(UIElement):
     """A UI component that draws all player information."""
 
     def __init__(self, player):
-        rect = pygame.Rect(100, 50, C.SCREEN_WIDTH - 200, C.SCREEN_HEIGHT - 100)
+        rect = pygame.Rect(C.CHAR_SHEET_RECT)
         super().__init__(rect)
         self.player = player
         self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
