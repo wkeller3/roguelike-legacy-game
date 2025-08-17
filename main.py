@@ -5,12 +5,19 @@ import json
 import constants as C
 from weapon import Weapon
 from ui_elements import Button
-from states import CharCreationState, ExploringState, CombatState, GameOverState
+from states import (
+    CharCreationState,
+    ExploringState,
+    CombatState,
+    GameOverState,
+    OverworldState,
+    TownState,
+)
 from hero import Hero
 from gamemap import GameMap
 
 # --- Developer flag to bypass character creation for quick testing ---
-DEV_SKIP_CHAR_CREATION = False
+DEV_SKIP_CHAR_CREATION = True
 
 
 class Game:
@@ -34,10 +41,12 @@ class Game:
         """Initializes all the game states and sets the starting state."""
         # --- FIX: Define ALL possible states first ---
         self.states = {
+            "TOWN": TownState,
             "CHAR_CREATION": CharCreationState,
             "EXPLORING": ExploringState,
             "COMBAT": CombatState,
             "GAME_OVER": GameOverState,
+            "OVERWORLD": OverworldState,
         }
 
         # --- THEN, decide which state to start in ---
@@ -60,7 +69,7 @@ class Game:
             )
 
             self.persistent_data = {"player": player, "game_map": game_map}
-            self.current_state = self.states["EXPLORING"](self.persistent_data)
+            self.current_state = self.states["TOWN"](self.persistent_data)
         else:
             char_creation_data = self.load_char_creation_data()
             self.current_state = self.states["CHAR_CREATION"](char_creation_data)

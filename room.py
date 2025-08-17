@@ -10,7 +10,7 @@ class Room:
     all the sprites and data for that specific area.
     """
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, room_type="dungeon"):
         self.width = width
         self.height = height
 
@@ -19,8 +19,9 @@ class Room:
         self.enemies = pygame.sprite.Group()
         self.loot = pygame.sprite.Group()  # For later use
 
-        # Populate the room with some enemies
-        self.spawn_enemies()
+        # --- Only spawn enemies in dungeon rooms ---
+        if room_type == "dungeon":
+            self.spawn_enemies()
 
     def add_sprite(self, sprite):
         """A helper method to add a sprite to the all_sprites group."""

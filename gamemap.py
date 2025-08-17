@@ -36,23 +36,28 @@ class GameMap:
 
     def _generate_dungeon(self):
         """
-        Creates a dungeon using the "Drunkard's Walk" algorithm.
-        The layout will be different every time.
+        Creates a dungeon using the "Drunkard's Walk" algorithm, ensuring
+        the exit at (-1, 0) is never blocked.
         """
         print("--- Generating new dungeon ---")
 
-        # Start at (0,0) and create the first room
         digger_x, digger_y = 0, 0
         self.rooms[(digger_x, digger_y)] = Room(self.screen_width, self.screen_height)
         num_rooms_created = 1
 
         while num_rooms_created < self.max_rooms:
-            # Choose a random direction to step: N, S, E, W
-            (dx, dy) = random.choice([(0, -1), (0, 1), (1, 0), (-1, 0)])
+            # The digger can attempt to move in any of the four directions
+            directions = [(0, -1), (0, 1), (1, 0), (-1, 0)]
+            (dx, dy) = random.choice(directions)
 
-            # Move the digger to a new potential room location
             new_x = digger_x + dx
             new_y = digger_y + dy
+
+            # --- Add a universal check to forbid the exit tile ---
+            # If the digger tries to move into the exit space, stop this
+            # iteration and try a different direction next time.
+            if (new_x, new_y) == (-1, 0):
+                continue
 
             # If this spot hasn't been carved out yet, create a new room
             if (new_x, new_y) not in self.rooms:
@@ -63,8 +68,7 @@ class GameMap:
                     f"Created room #{num_rooms_created} at ({new_x}, {new_y}) with {len(new_room.enemies)} enemies."
                 )
 
-            # IMPORTANT: The digger always moves to the new spot, even if a
-            # room was already there. This allows corridors to connect.
+            # The digger always moves to the new spot (unless it was the forbidden tile)
             digger_x, digger_y = new_x, new_y
 
         print("--- Dungeon generation complete! ---")
