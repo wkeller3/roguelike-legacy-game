@@ -10,7 +10,14 @@ from combat import resolve_attack
 from map_view import draw_map
 from room import Room
 import json
-from ui_elements import Button, TextBox, DialogueBox, CharacterSheet
+from ui_elements import (
+    Button,
+    MainMenu,
+    PauseMenu,
+    TextBox,
+    DialogueBox,
+    CharacterSheet,
+)
 
 
 class BaseState:
@@ -150,6 +157,22 @@ class CharCreationState(BaseState):
         self.data["ui_elements"]["done_button"].draw(screen)
 
 
+class MainMenuState(BaseState):
+    """The state for the main menu of the game."""
+
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
+        self.menu_ui = MainMenu(game)
+
+    def handle_events(self, event):
+        super().handle_events(event)
+        self.menu_ui.handle_event(event)
+
+    def draw(self, screen):
+        screen.fill(C.ROOM_COLOR)
+        self.menu_ui.draw(screen)
+
+
 class GameplayState(BaseState):
     """
     An intermediate class for states that share the main gameplay data
@@ -245,6 +268,8 @@ class TownState(GameplayState):
             return  # Don't process other keys while in dialogue
 
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.game.push_state("PAUSE")
             if event.key == pygame.K_e:  # The 'Interact' key
                 if self.nearby_npc:
                     # Start dialogue if not already active
@@ -431,6 +456,8 @@ class ExploringState(GameplayState):
     def handle_events(self, event):
         super().handle_events(event)
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.game.push_state("PAUSE")
             if event.key == pygame.K_m:
                 self.show_map = not self.show_map
             elif event.key == pygame.K_c:  # 'C' for Character
@@ -694,7 +721,7 @@ class GameOverState(GameplayState):
             self.done = True
             # We don't pass any persistent data, starting a fresh run
             self.persistent_data = {}
-            self.next_state = "CHAR_CREATION"
+            self.next_state = "MAIN_MENU"
 
     def draw(self, screen):
         # Draw a dark overlay, similar to combat
@@ -749,6 +776,27 @@ class CharacterSheetState(GameplayState):
         self.sheet_ui.draw(screen)
 
 
+class PauseState(GameplayState):
+    """A pause state that shows the pause menu."""
+
+    def __init__(self, game, persistent_data):
+        super().__init__(game, persistent_data)
+        self.previous_state = game.state_stack[-1]
+        self.menu_ui = PauseMenu(game)
+
+    def handle_events(self, event):
+        super().handle_events(event)
+        self.menu_ui.handle_event(event)
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.game.pop_state()
+
+    def draw(self, screen):
+        # Draw the state below it as the background, then the menu on top
+        self.previous_state.draw(screen)
+        self.menu_ui.draw(screen)
+
+
 # A mapping of state names to their respective classes
 STATE_MAP = {
     "CHAR_CREATION": CharCreationState,
@@ -758,6 +806,8 @@ STATE_MAP = {
     "COMBAT": CombatState,
     "GAME_OVER": GameOverState,
     "CHAR_SHEET": CharacterSheetState,
+    "PAUSE": PauseState,
+    "MAIN_MENU": MainMenuState,
 }
 
 

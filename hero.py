@@ -2,6 +2,7 @@
 
 import pygame
 import constants as C
+from factories import WEAPON_TEMPLATES
 
 
 # Make the Hero class a Pygame Sprite for 2D game object functionality.
@@ -52,7 +53,7 @@ class Hero(pygame.sprite.Sprite):
         self.equipped_weapon = None  # Will be set after creation
 
         # --- Combat State ---
-        self.is_defending = False  # <-- ADD THIS LINE
+        self.is_defending = False
 
     def move(self, dx, dy, screen_width, screen_height):
         """
@@ -70,3 +71,42 @@ class Hero(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom > screen_height:
             self.rect.bottom = screen_height
+
+    def to_dict(self, current_room_coords=None):
+        """Converts the hero's state to a dictionary for saving."""
+        weapon_id = next(
+            (
+                w_id
+                for w_id, w_obj in WEAPON_TEMPLATES.items()
+                if w_obj.name == self.equipped_weapon.name
+            ),
+            None,
+        )
+        return {
+            "first_name": self.first_name,
+            "family_name": self.family_name,
+            "health": self.health,
+            "gold": self.gold,
+            "stats": self.stats,
+            "equipped_weapon_id": weapon_id,
+            "position": {
+                "pos_in_room": self.rect.center,
+                "room_coords": current_room_coords,
+            },
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Creates a Hero instance from a dictionary of saved data."""
+        player = cls(
+            first_name=data["first_name"],
+            family_name=data["family_name"],
+            pos_x=data["position"]["pos_in_room"][0],
+            pos_y=data["position"]["pos_in_room"][1],
+        )
+        player.health = data["health"]
+        player.gold = data["gold"]
+        player.stats = data["stats"]
+        if data["equipped_weapon_id"]:
+            player.equipped_weapon = WEAPON_TEMPLATES[data["equipped_weapon_id"]]
+        return player

@@ -10,7 +10,7 @@ class Room:
     all the sprites and data for that specific area.
     """
 
-    def __init__(self, width, height, room_type="dungeon"):
+    def __init__(self, width, height, room_type="dungeon", saved_enemies=None):
         self.width = width
         self.height = height
 
@@ -21,11 +21,14 @@ class Room:
         self.loot = pygame.sprite.Group()  # For later use
         self.is_cleared = False
 
-        # --- Only spawn enemies in dungeon rooms ---
-        if room_type == "dungeon":
+        # --- Handle both random spawning and loading ---
+        if saved_enemies is not None:  # Note: Check for None, as an empty list is valid
+            self.spawn_from_save(saved_enemies)
+        elif room_type == "dungeon":
             self.spawn_enemies()
-            if not self.enemies:
-                self.is_cleared = True
+
+        if not self.enemies:
+            self.is_cleared = True
 
     def add_sprite(self, sprite):
         """A helper method to add a sprite to the all_sprites group."""
@@ -47,6 +50,20 @@ class Room:
             # Use the single factory function to create the enemy
             enemy = create_enemy(enemy_type, x, y)
 
+            self.all_sprites.add(enemy)
+            self.enemies.add(enemy)
+
+    def spawn_from_save(self, saved_enemies):
+        """Creates specific enemies from a list of saved data."""
+        for enemy_data in saved_enemies:
+            # Use the factory to create the base enemy
+            enemy = create_enemy(
+                enemy_data["type"],
+                enemy_data["rect_center"][0],
+                enemy_data["rect_center"][1],
+            )
+            # Restore its specific health
+            enemy.health = enemy_data["health"]
             self.all_sprites.add(enemy)
             self.enemies.add(enemy)
 
@@ -75,3 +92,10 @@ class Room:
         """Adds an NPC to the room's sprite groups."""
         self.all_sprites.add(npc)
         self.npcs.add(npc)
+
+    def to_dict(self):
+        """Converts the room's state to a dictionary."""
+        return {
+            "is_cleared": self.is_cleared,
+            "enemies": [enemy.to_dict() for enemy in self.enemies],
+        }

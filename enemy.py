@@ -90,3 +90,11 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom > screen_height:
             self.rect.bottom = screen_height
+
+    def to_dict(self):
+        """Converts the enemy's current state to a dictionary."""
+        return {
+            "type": self.name.lower(),
+            "health": self.health,
+            "rect_center": self.rect.center,
+        }

@@ -10,25 +10,46 @@ class GameMap:
     """
 
     def __init__(
-        self, min_rooms, max_rooms, screen_width, screen_height, entry_direction
+        self,
+        screen_width,
+        screen_height,
+        min_rooms=None,
+        max_rooms=None,
+        entry_direction=None,
+        map_data=None,
     ):
         """
         Args:
-            max_rooms (int): The number of rooms to generate for the dungeon.
+            min_rooms (int): Minimum number of rooms to generate.
+            max_rooms (int): The maximum number of rooms to generate.
             screen_width (int): Pixel width of the screen.
             screen_height (int): Pixel height of the screen.
             entry_direction (str): The side from which the player enters ('NORTH', 'SOUTH', etc.)
         """
-        self.num_rooms = random.randint(min_rooms, max_rooms)
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.entry_direction = entry_direction  # Store the entry direction
-
         self.rooms = {}
-        self.current_room_coords = (0, 0)
         self.explored_rooms = set()
 
-        self._generate_dungeon()
+        if map_data:
+            # Load from existing data
+            self.num_rooms = map_data["num_rooms"]
+            self.entry_direction = map_data["entry_direction"]
+            # Recreate the rooms using their saved states
+            for coords_str, room_data in map_data["rooms"].items():
+                coords = tuple(map(int, coords_str.strip("()").split(",")))
+                self.rooms[coords] = Room(
+                    screen_width, screen_height, saved_enemies=room_data["enemies"]
+                )
+            self.explored_rooms = {
+                tuple(coords) for coords in map_data["explored_rooms"]
+            }
+        else:
+            # Generate a new map
+            self.num_rooms = random.randint(min_rooms, max_rooms)
+            self.entry_direction = entry_direction
+            self.current_room_coords = (0, 0)
+            self._generate_dungeon()
 
     def _generate_dungeon(self):
         """
@@ -101,3 +122,14 @@ class GameMap:
             return self.get_current_room()
 
         return None
+
+    def to_dict(self):
+        """Converts the entire map state to a dictionary."""
+        return {
+            "num_rooms": self.num_rooms,
+            "entry_direction": self.entry_direction,
+            "rooms": {
+                str(coords): room.to_dict() for coords, room in self.rooms.items()
+            },
+            "explored_rooms": [list(coords) for coords in self.explored_rooms],
+        }

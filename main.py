@@ -3,13 +3,15 @@
 import pygame
 import json
 import constants as C
+from factories import WEAPON_TEMPLATES
+from gamemap import GameMap
 from weapon import Weapon
 from ui_elements import Button
-from states import create_state
+from states import STATE_MAP, create_state
 from hero import Hero
 
 # --- Developer flag to bypass character creation for quick testing ---
-DEV_SKIP_CHAR_CREATION = True
+DEV_SKIP_CHAR_CREATION = False
 
 
 class Game:
@@ -51,7 +53,7 @@ class Game:
         else:
             char_creation_data = self.load_char_creation_data()
             self.state_stack.append(
-                create_state("CHAR_CREATION", self, initial_data=char_creation_data)
+                create_state("MAIN_MENU", self, initial_data=char_creation_data)
             )
 
     def load_char_creation_data(self):
@@ -138,6 +140,79 @@ class Game:
             self.state_stack.append(
                 create_state(next_state_name, self, persistent_data)
             )
+
+    def load_game_data(self):
+        """Reads the save file and reconstructs the game state using object methods."""
+        try:
+            with open("savegame.json", "r") as f:
+                save_data = json.load(f)
+
+            # Reconstruct Player and GameMap
+            player = Hero.from_dict(save_data["player_data"])
+            game_map = None
+            if save_data["map_data"]:
+                game_map = GameMap(
+                    screen_width=C.SCREEN_WIDTH,
+                    screen_height=C.SCREEN_HEIGHT,
+                    map_data=save_data["map_data"],
+                )
+
+            # Restore player's current room in the map if it exists
+            if game_map:
+                saved_room_coords = save_data["player_data"]["position"]["room_coords"]
+                if saved_room_coords:
+                    game_map.current_room_coords = tuple(saved_room_coords)
+
+            persistent_data = {"player": player, "game_map": game_map}
+            starting_state = save_data["last_state"]
+
+            return persistent_data, starting_state
+        except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+            print(f"Could not load save game: {e}")
+            return None, None
+
+    def load_and_start_from_save(self):
+        """Loads data and flips to the appropriate game state."""
+        persistent_data, starting_state_name = self.load_game_data()
+        if persistent_data and starting_state_name:
+            self.state_stack = []  # Clear stack
+            new_state = create_state(starting_state_name, self, persistent_data)
+            self.state_stack.append(new_state)
+
+    def save_game_data(self):
+        """Gathers all necessary data using object methods and saves it to a file."""
+        active_state = self.get_active_state()
+        gameplay_state = active_state
+        if hasattr(active_state, "previous_state"):
+            gameplay_state = active_state.previous_state
+
+        player = gameplay_state.persistent_data.get("player")
+        game_map = gameplay_state.persistent_data.get("game_map")
+
+        if not player:
+            print("Cannot save: No active player found.")
+            return
+
+        # Get the current state key for saving
+        state_key_to_save = next(
+            (
+                key
+                for key, value in STATE_MAP.items()
+                if isinstance(gameplay_state, value)
+            ),
+            None,
+        )
+        # Get the current room coordinates, which might be None if not in a dungeon
+        current_room_coords = game_map.current_room_coords if game_map else None
+        save_data = {
+            "player_data": player.to_dict(current_room_coords=current_room_coords),
+            "map_data": game_map.to_dict() if game_map else None,
+            "last_state": state_key_to_save,
+        }
+
+        with open("savegame.json", "w") as f:
+            json.dump(save_data, f, indent=4)
+        print("Game saved successfully!")
 
     def run(self):
         """The main game loop."""

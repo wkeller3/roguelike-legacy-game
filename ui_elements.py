@@ -1,6 +1,7 @@
 # ui_elements.py
 import pygame
 import constants as C
+import os
 
 
 def wrap_text(text, font, max_width):
@@ -300,3 +301,140 @@ class CharacterSheet(UIElement):
         screen.blit(inv_header, (x_offset, y_offset))
         inv_text = self.font_text.render("Empty", True, C.GRAY)
         screen.blit(inv_text, (x_offset + 10, y_offset + 40))
+
+
+class PauseMenu(UIElement):
+    """A UI component for the pause menu."""
+
+    def __init__(self, game):
+        rect = pygame.Rect(
+            C.SCREEN_WIDTH / 2 - 150, C.SCREEN_HEIGHT / 2 - 200, 300, 400
+        )
+        super().__init__(rect)
+        self.game = game
+        self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
+
+        # Create buttons for the menu
+        self.resume_button = Button(
+            self.rect.x + 50,
+            self.rect.y + 80,
+            200,
+            50,
+            "Resume",
+            self.font_title,
+            C.GREEN,
+            C.GRAY,
+        )
+        self.save_button = Button(
+            self.rect.x + 50,
+            self.rect.y + 160,
+            200,
+            50,
+            "Save Game",
+            self.font_title,
+            C.GREEN,
+            C.GRAY,
+        )
+        self.settings_button = Button(
+            self.rect.x + 50,
+            self.rect.y + 240,
+            200,
+            50,
+            "Settings",
+            self.font_title,
+            C.GRAY,
+            C.GRAY,
+        )
+        self.quit_button = Button(
+            self.rect.x + 50,
+            self.rect.y + 320,
+            200,
+            50,
+            "Quit Game",
+            self.font_title,
+            C.RED,
+            C.GRAY,
+        )
+        self.settings_button.is_disabled = True  # Disable until we implement it
+
+    def handle_event(self, event):
+        if self.resume_button.handle_event(event):
+            self.game.pop_state()
+        if self.save_button.handle_event(event):
+            self.game.save_game_data()
+            self.game.pop_state()  # Close menu after saving
+        if self.quit_button.handle_event(event):
+            self.game.running = False
+
+    def draw(self, screen):
+        # Draw a semi-transparent background for the whole screen
+        overlay = pygame.Surface((C.SCREEN_WIDTH, C.SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        screen.blit(overlay, (0, 0))
+
+        # Draw the menu panel
+        pygame.draw.rect(screen, (30, 30, 40), self.rect)
+        pygame.draw.rect(screen, C.WHITE, self.rect, 2)
+
+        # Draw title
+        title_text = self.font_title.render("Paused", True, C.WHITE)
+        title_rect = title_text.get_rect(centerx=self.rect.centerx, y=self.rect.y + 20)
+        screen.blit(title_text, title_rect)
+
+        # Draw buttons
+        self.resume_button.draw(screen)
+        self.save_button.draw(screen)
+        self.settings_button.draw(screen)
+        self.quit_button.draw(screen)
+
+
+class MainMenu(UIElement):
+    """A UI component for the main menu."""
+
+    def __init__(self, game):
+        rect = pygame.Rect(0, 0, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
+        super().__init__(rect)
+        self.game = game
+        self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE + 20)
+        self.font_button = pygame.font.Font(None, C.FONT_SIZE_TITLE)
+
+        self.new_game_button = Button(
+            self.rect.centerx - 150,
+            self.rect.y + 250,
+            300,
+            60,
+            "New Legacy",
+            self.font_button,
+            C.GREEN,
+            C.GRAY,
+        )
+        self.load_game_button = Button(
+            self.rect.centerx - 150,
+            self.rect.y + 330,
+            300,
+            60,
+            "Load Legacy",
+            self.font_button,
+            C.GREEN,
+            C.GRAY,
+        )
+
+        # Disable the load button if no save file exists
+        if not os.path.exists("savegame.json"):
+            self.load_game_button.is_disabled = True
+
+    def handle_event(self, event):
+        if self.new_game_button.handle_event(event):
+            self.game.get_active_state().next_state = "CHAR_CREATION"
+            self.game.get_active_state().done = True
+
+        if self.load_game_button.handle_event(event):
+            self.game.load_and_start_from_save()
+
+    def draw(self, screen):
+        title_text = self.font_title.render("Legacy of the Cursed", True, C.WHITE)
+        title_rect = title_text.get_rect(centerx=self.rect.centerx, y=self.rect.y + 100)
+        screen.blit(title_text, title_rect)
+
+        self.new_game_button.draw(screen)
+        self.load_game_button.draw(screen)
