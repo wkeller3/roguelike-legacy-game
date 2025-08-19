@@ -233,7 +233,7 @@ class Game:
             self.get_active_state().draw(self.screen)
 
             pygame.display.flip()
-            dt = self.clock.tick(60) / 1000
+            dt = self.clock.tick(C.FPS) / 1000
 
 
 if __name__ == "__main__":
