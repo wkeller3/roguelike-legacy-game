@@ -22,13 +22,13 @@ from ui_elements import (
 
 class BaseState:
     """
-    A base class for all game states. It provides a standard interface
-    for handling events, updating logic, and drawing to the screen.
+    A base class for all game states. It now gets a reference to the main
+    game object and its shared context.
     """
 
-    def __init__(self, game, persistent_data):
+    def __init__(self, game):
         self.game = game
-        self.persistent_data = persistent_data
+        self.context = game.context
         self.done = False
         self.quit = False
         self.next_state = None
@@ -47,13 +47,12 @@ class BaseState:
 
 class CharCreationState(BaseState):
     """
-    The state for creating a new character. Handles name input, stat allocation,
-    and weapon selection.
+    The state for creating a new character.
     """
 
-    def __init__(self, game, char_creation_data):
-        super().__init__(game, {})
-        self.data = char_creation_data
+    def __init__(self, game, initial_data):
+        super().__init__(game)
+        self.data = initial_data
         self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
         self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
@@ -82,7 +81,8 @@ class CharCreationState(BaseState):
             player.equipped_weapon = self.data["weapon_choices"][
                 self.data["selected_weapon_idx"]
             ]
-            self.persistent_data["player"] = player
+            # Populate the shared game context
+            self.context.player = player
             self.done = True
             self.next_state = "TOWN"
         # Handle other mouse clicks (name box, weapon selection)
@@ -160,8 +160,8 @@ class CharCreationState(BaseState):
 class MainMenuState(BaseState):
     """The state for the main menu of the game."""
 
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
+    def __init__(self, game):
+        super().__init__(game)
         self.menu_ui = MainMenu(game)
 
     def handle_events(self, event):
@@ -175,14 +175,13 @@ class MainMenuState(BaseState):
 
 class GameplayState(BaseState):
     """
-    An intermediate class for states that share the main gameplay data
-    (player, map, etc.), to avoid code duplication.
+    An intermediate class for states that share the main gameplay data.
     """
 
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
-        self.player = self.persistent_data.get("player")
-        self.game_map = self.persistent_data.get("game_map")
+    def __init__(self, game):
+        super().__init__(game)
+        self.player = self.context.player
+        self.game_map = self.context.game_map
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
 
     def draw_hud(self, screen):
@@ -200,28 +199,24 @@ class GameplayState(BaseState):
         )
         # Gold
         y_offset += 30
-        gold_text = self.font_text.render(
-            f"Gold: {self.player.gold}", True, (255, 223, 0)
-        )
+        gold_text = self.font_text.render(f"Gold: {self.player.gold}", True, C.GOLD)
         screen.blit(gold_text, (20, y_offset))
 
 
 class TownState(GameplayState):
     """
-    The state for the main town or hub area. It's a safe zone
-    with no enemies, and now with interactable NPCs.
+    The state for the main town or hub area.
     """
 
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
+    def __init__(self, game):
+        super().__init__(game)
         self.town_room = Room(C.SCREEN_WIDTH, C.SCREEN_HEIGHT, room_type="town")
         self.town_room.add_player(self.player)
 
         # --- Load NPCs from the data file ---
         self._load_npcs()
-
         # Player repositioning logic
-        entry_point = self.persistent_data.get("entry_direction", "CENTER")
+        entry_point = getattr(self.context, "entry_direction", "CENTER")
         if entry_point == "NORTH":
             self.player.rect.midtop = (C.SCREEN_WIDTH / 2, 20)
         elif entry_point == "SOUTH":
@@ -230,22 +225,15 @@ class TownState(GameplayState):
             self.player.rect.midleft = (20, C.SCREEN_HEIGHT / 2)
         elif entry_point == "EAST":
             self.player.rect.midright = (C.SCREEN_WIDTH - 20, C.SCREEN_HEIGHT / 2)
-        else:
+        else:  # Default for new game start
             self.player.rect.center = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2)
 
-        # --- Dialogue System variables ---
-        self.is_in_dialogue = False
-        self.nearby_npc = None
-        self.active_dialogue = []
-        self.dialogue_index = 0
-        self.active_npc = None
-
-        # --- Create instances of our UI elements ---
         hint_rect = pygame.Rect(0, C.SCREEN_HEIGHT - 60, C.SCREEN_WIDTH, 50)
         self.interaction_hint = TextBox("", hint_rect, self.font_text)
         self.interaction_hint.is_visible = False
         self.dialogue_box = DialogueBox()
         self.ui_elements = [self.interaction_hint, self.dialogue_box]
+        self.nearby_npc = None
 
     def _load_npcs(self):
         """Loads NPC data from the JSON file and populates the town."""
@@ -254,23 +242,19 @@ class TownState(GameplayState):
 
         # Get the list of NPCs specifically for the "Town" location
         town_npcs = all_npc_data.get("Town", [])
-
         for npc_data in town_npcs:
-            # Create an NPC instance from the template data
-            npc = NPC(template_data=npc_data)
-            self.town_room.add_npc(npc)
+            self.town_room.add_npc(NPC(template_data=npc_data))
 
     def handle_events(self, event):
         super().handle_events(event)
-        # --- Delegate event handling to the DialogueBox ---
         if self.dialogue_box.is_active:
             self.dialogue_box.handle_event(event)
-            return  # Don't process other keys while in dialogue
+            return
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.game.push_state("PAUSE")
-            if event.key == pygame.K_e:  # The 'Interact' key
+            if event.key == pygame.K_e:
                 if self.nearby_npc:
                     # Start dialogue if not already active
                     self.dialogue_box.start_dialogue(self.nearby_npc)
@@ -281,17 +265,17 @@ class TownState(GameplayState):
         # --- Pause player movement and exits during dialogue ---
         if self.dialogue_box.is_active:
             return
-        player_speed = C.PLAYER_SPEED
+
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            dx = -player_speed
+            dx = -C.PLAYER_SPEED
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            dx = player_speed
+            dx = C.PLAYER_SPEED
         if keys[pygame.K_UP] or keys[pygame.K_w]:
-            dy = -player_speed
+            dy = -C.PLAYER_SPEED
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            dy = player_speed
+            dy = C.PLAYER_SPEED
         if dx != 0 or dy != 0:
             self.player.move(dx, dy, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
 
@@ -323,8 +307,8 @@ class TownState(GameplayState):
             exit_direction = "EAST"
 
         if exit_direction:
-            self.persistent_data["exit_to_overworld_from"] = "Town"
-            self.persistent_data["overworld_entry_direction"] = exit_direction
+            self.context.exit_to_overworld_from = "Town"
+            self.context.overworld_entry_direction = exit_direction
             self.done = True
             self.next_state = "OVERWORLD"
 
@@ -338,9 +322,8 @@ class TownState(GameplayState):
 
 
 class OverworldState(GameplayState):
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
-
+    def __init__(self, game):
+        super().__init__(game)
         self.pois = {
             "Town": {"rect": pygame.Rect(180, 280, 100, 80), "target_state": "TOWN"},
             "Dungeon": {
@@ -349,14 +332,11 @@ class OverworldState(GameplayState):
             },
         }
         self.player_avatar = pygame.Rect(0, 0, 20, 20)
-
         # --- Position avatar dynamically based on exit information ---
-        exit_location = self.persistent_data.get("exit_to_overworld_from", "Town")
-        entry_direction = self.persistent_data.get("overworld_entry_direction", "SOUTH")
-
+        exit_location = getattr(self.context, "exit_to_overworld_from", "Town")
+        entry_direction = getattr(self.context, "overworld_entry_direction", "SOUTH")
         poi_rect = self.pois[exit_location]["rect"]
         padding = 5
-
         if entry_direction == "NORTH":
             self.player_avatar.midbottom = (poi_rect.centerx, poi_rect.top - padding)
         elif entry_direction == "SOUTH":
@@ -370,7 +350,7 @@ class OverworldState(GameplayState):
         super().handle_events(event)
 
     def update(self, dt):
-        player_speed = 5
+        player_speed = C.PLAYER_SPEED
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -389,7 +369,6 @@ class OverworldState(GameplayState):
                 # Step 1: Immediately determine the entry direction based on collision
                 col_dx = self.player_avatar.centerx - data["rect"].centerx
                 col_dy = self.player_avatar.centery - data["rect"].centery
-
                 entry_direction = ""
                 if abs(col_dx) > abs(col_dy):  # Horizontal collision
                     if col_dx > 0:
@@ -411,11 +390,9 @@ class OverworldState(GameplayState):
                         screen_height=C.SCREEN_HEIGHT,
                         entry_direction=entry_direction,
                     )
-                    self.persistent_data["game_map"] = new_dungeon_map
-
+                    self.context.game_map = new_dungeon_map
                 # Step 3: Store the entry direction for the next state to use
-                self.persistent_data["entry_direction"] = entry_direction
-
+                self.context.entry_direction = entry_direction
                 # Step 4: Trigger the state transition
                 self.done = True
                 self.next_state = data["target_state"]
@@ -431,15 +408,14 @@ class OverworldState(GameplayState):
 
 
 class ExploringState(GameplayState):
-    """The state for exploring the dungeon, moving between rooms."""
-
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
+    def __init__(self, game):
+        super().__init__(game)
         self.current_room = self.game_map.get_current_room()
         self.current_room.add_player(self.player)
         self.show_map = False
         # Reposition player based on how they entered the dungeon
-        entry_point = self.persistent_data.get("entry_direction")
+
+        entry_point = getattr(self.context, "entry_direction", None)
         if entry_point:
             # If it exists, position the player accordingly
             if entry_point == "NORTH":
@@ -450,8 +426,7 @@ class ExploringState(GameplayState):
                 self.player.rect.midleft = (20, C.SCREEN_HEIGHT / 2)
             elif entry_point == "EAST":
                 self.player.rect.midright = (C.SCREEN_WIDTH - 20, C.SCREEN_HEIGHT / 2)
-            # Now, remove the key so this logic doesn't run again after a battle
-            del self.persistent_data["entry_direction"]
+            self.context.entry_direction = None
 
     def handle_events(self, event):
         super().handle_events(event)
@@ -460,32 +435,30 @@ class ExploringState(GameplayState):
                 self.game.push_state("PAUSE")
             if event.key == pygame.K_m:
                 self.show_map = not self.show_map
-            elif event.key == pygame.K_c:  # 'C' for Character
+            elif event.key == pygame.K_c:
                 self.game.push_state("CHAR_SHEET")
 
     def update(self, dt):
         if self.show_map:
-            return  # Pause game when map is open
-        # Player movement
-        player_speed = C.PLAYER_SPEED
+            return
+
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            dx = -player_speed
+            dx = -C.PLAYER_SPEED
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            dx = player_speed
+            dx = C.PLAYER_SPEED
         if keys[pygame.K_UP] or keys[pygame.K_w]:
-            dy = -player_speed
+            dy = -C.PLAYER_SPEED
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            dy = player_speed
+            dy = C.PLAYER_SPEED
         if dx != 0 or dy != 0:
             self.player.move(dx, dy, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
-        # Update enemy AI and check for room transitions
+
         self.current_room.update(self.player)
-        # --- Check for exits to Overworld from the start room ---
+
         if self.game_map.current_room_coords == (0, 0):
             exit_direction = self.game_map.entry_direction
-
             should_exit = False
             if exit_direction == "NORTH" and self.player.rect.top <= 0:
                 should_exit = True
@@ -497,15 +470,13 @@ class ExploringState(GameplayState):
                 should_exit = True
             elif exit_direction == "EAST" and self.player.rect.right >= C.SCREEN_WIDTH:
                 should_exit = True
-
             if should_exit:
-                self.persistent_data["exit_to_overworld_from"] = "Dungeon"
-                self.persistent_data["overworld_entry_direction"] = exit_direction
+                self.context.exit_to_overworld_from = "Dungeon"
+                self.context.overworld_entry_direction = exit_direction
                 self.done = True
                 self.next_state = "OVERWORLD"
                 return
 
-        # If not exiting to overworld, check for room-to-room transitions
         new_room = None
         if self.player.rect.right >= C.SCREEN_WIDTH:
             new_room = self.game_map.move_to_room(dx=1, dy=0)
@@ -515,7 +486,6 @@ class ExploringState(GameplayState):
             new_room = self.game_map.move_to_room(dx=0, dy=1)
         elif self.player.rect.top <= 0:
             new_room = self.game_map.move_to_room(dx=0, dy=-1)
-
         if new_room:
             if self.player.rect.right >= C.SCREEN_WIDTH:
                 self.player.rect.left = 10
@@ -530,12 +500,11 @@ class ExploringState(GameplayState):
             self.current_room.add_player(self.player)
             self.game_map.explored_rooms.add(self.game_map.current_room_coords)
 
-        # Finally, check for combat
         collided_enemies = pygame.sprite.spritecollide(
             self.player, self.current_room.enemies, False
         )
         if collided_enemies:
-            self.persistent_data["active_enemy"] = collided_enemies[0]
+            self.context.active_enemy = collided_enemies[0]
             self.done = True
             self.next_state = "COMBAT"
 
@@ -548,24 +517,20 @@ class ExploringState(GameplayState):
 
 
 class CombatState(GameplayState):
-    """The state for turn-based combat."""
-
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
+    def __init__(self, game):
+        super().__init__(game)
         self.current_room = self.game_map.get_current_room()
-        self.active_enemy = self.persistent_data["active_enemy"]
-        self.combat_log = [f"You encounter an Enemy!"]
+        self.active_enemy = self.context.active_enemy
+        self.combat_log = [f"You encounter a {self.active_enemy.name}!"]
         self.current_turn = "PLAYER"
         self.phase = "ACTIVE"
 
     def handle_events(self, event):
         super().handle_events(event)
-
         if self.phase == "VICTORY":
             if event.type == pygame.KEYDOWN:
                 self.done = True
                 self.next_state = "EXPLORING"
-
         elif self.phase == "ACTIVE" and self.current_turn == "PLAYER":
             player_action = None
             if event.type == pygame.KEYDOWN:
@@ -585,7 +550,6 @@ class CombatState(GameplayState):
                     self.current_turn = "ENEMY"
             if player_action:
                 self.combat_log.append(player_action["message"])
-                # Clamp enemy health at 0
                 damage_dealt = player_action["damage"]
                 self.active_enemy.health = max(
                     0, self.active_enemy.health - damage_dealt
@@ -596,13 +560,11 @@ class CombatState(GameplayState):
         # Don't update logic if the fight is already won
         if self.phase == "VICTORY":
             return
-
         if self.player.health <= 0:
             self.combat_log.append("You have been defeated!")
             self.done = True
             self.next_state = "GAME_OVER"
             return
-
         if self.active_enemy.health <= 0:
             # Switch to victory phase instead of ending the state
             self.phase = "VICTORY"
@@ -613,7 +575,6 @@ class CombatState(GameplayState):
             )
             self.active_enemy.kill()
             return
-
         if self.current_turn == "ENEMY":
             pygame.time.wait(C.COMBAT_ENEMY_TURN_DELAY)
             if self.active_enemy.is_charging_attack:
@@ -637,11 +598,8 @@ class CombatState(GameplayState):
                 damage_taken = damage_taken // 2
                 attack_result["message"] += " (Blocked!)"
                 self.player.is_defending = False
-
             self.combat_log.append(attack_result["message"])
-            # Clamp player health at 0
             self.player.health = max(0, self.player.health - damage_taken)
-
             if not self.active_enemy.is_charging_attack:
                 self.current_turn = "PLAYER"
 
@@ -686,15 +644,12 @@ class CombatState(GameplayState):
             for i, action in enumerate(actions):
                 action_text = self.font_text.render(action, True, C.WHITE)
                 screen.blit(action_text, (menu_x, menu_y + i * 30))
-
-        # --- NEW: Victory Message ---
         if self.phase == "VICTORY":
-            victory_text = font_title.render("VICTORY", True, (255, 223, 0))
+            victory_text = font_title.render("VICTORY", True, C.GOLD)
             text_rect = victory_text.get_rect(
                 center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2 - 50)
             )
             screen.blit(victory_text, text_rect)
-
             continue_text = self.font_text.render(
                 "Press any key to continue...", True, C.WHITE
             )
@@ -705,12 +660,8 @@ class CombatState(GameplayState):
 
 
 class GameOverState(GameplayState):
-    """
-    A state that is shown when the player's health reaches zero.
-    """
-
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
+    def __init__(self, game):
+        super().__init__(game)
         self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
 
@@ -719,8 +670,6 @@ class GameOverState(GameplayState):
         # If any key is pressed, transition back to character creation
         if event.type == pygame.KEYDOWN:
             self.done = True
-            # We don't pass any persistent data, starting a fresh run
-            self.persistent_data = {}
             self.next_state = "MAIN_MENU"
 
     def draw(self, screen):
@@ -755,11 +704,8 @@ class GameOverState(GameplayState):
 
 
 class CharacterSheetState(GameplayState):
-    """A pause state that displays detailed player information."""
-
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
-        # The previous state, which will be the background
+    def __init__(self, game):
+        super().__init__(game)
         self.previous_state = game.state_stack[-1]
         self.sheet_ui = CharacterSheet(self.player)
 
@@ -770,17 +716,13 @@ class CharacterSheetState(GameplayState):
                 self.game.pop_state()
 
     def draw(self, screen):
-        # Draw the state below it in the stack as the background
         self.previous_state.draw(screen)
-        # Draw the character sheet on top
         self.sheet_ui.draw(screen)
 
 
 class PauseState(GameplayState):
-    """A pause state that shows the pause menu."""
-
-    def __init__(self, game, persistent_data):
-        super().__init__(game, persistent_data)
+    def __init__(self, game):
+        super().__init__(game)
         self.previous_state = game.state_stack[-1]
         self.menu_ui = PauseMenu(game)
 
@@ -811,20 +753,10 @@ STATE_MAP = {
 }
 
 
-def create_state(state_name, game, persistent_data=None, initial_data=None):
-    """
-    Factory function to create state instances.
-
-    Args:
-        state_name (str): The name of the state to create (must be a key in STATE_MAP).
-        game (Game): The main game object instance.
-        persistent_data (dict): Data that persists between states (player, map, etc.).
-        initial_data (dict): Special data for states that don't use persistent_data, like CharCreationState.
-    """
+def create_state(state_name, game, initial_data=None):
+    """Factory function to create state instances."""
     state_class = STATE_MAP[state_name]
-
-    # CharCreationState has a unique constructor signature
     if state_name == "CHAR_CREATION":
         return state_class(game, initial_data)
     else:
-        return state_class(game, persistent_data)
+        return state_class(game)

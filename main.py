@@ -9,6 +9,7 @@ from weapon import Weapon
 from ui_elements import Button
 from states import STATE_MAP, create_state
 from hero import Hero
+from game_context import GameContext
 
 # --- Developer flag to bypass character creation for quick testing ---
 DEV_SKIP_CHAR_CREATION = False
@@ -29,7 +30,7 @@ class Game:
 
         self.state_stack = []
         self.current_state = None
-        self.persistent_data = {}
+        self.context = GameContext()
 
     def setup_states(self):
         """Initializes all the game states and sets the starting state."""
@@ -48,13 +49,11 @@ class Game:
                 crit_multiplier=2.0,
             )
 
-            persistent_data = {"player": player}
-            self.state_stack.append(create_state("TOWN", self, persistent_data))
+            self.context.player = player
+            self.state_stack.append(create_state("TOWN", self))
         else:
             char_creation_data = self.load_char_creation_data()
-            self.state_stack.append(
-                create_state("MAIN_MENU", self, initial_data=char_creation_data)
-            )
+            self.state_stack.append(create_state("MAIN_MENU", self))
 
     def load_char_creation_data(self):
         """Loads and prepares all data needed for the character creation screen."""
@@ -114,9 +113,7 @@ class Game:
 
     def push_state(self, state_name):
         """Pushes a new state onto the stack."""
-        new_state = create_state(
-            state_name, self, persistent_data=self.get_active_state().persistent_data
-        )
+        new_state = create_state(state_name, self)
         self.state_stack.append(new_state)
 
     def pop_state(self):
@@ -127,7 +124,6 @@ class Game:
     def flip_state(self):
         """Transitions to a completely new state, clearing the stack, using the factory."""
         next_state_name = self.get_active_state().next_state
-        persistent_data = self.get_active_state().persistent_data
 
         self.state_stack = []  # Clear the stack
 
@@ -137,9 +133,7 @@ class Game:
                 create_state("CHAR_CREATION", self, initial_data=char_data)
             )
         else:
-            self.state_stack.append(
-                create_state(next_state_name, self, persistent_data)
-            )
+            self.state_stack.append(create_state(next_state_name, self))
 
     def load_game_data(self):
         """Reads the save file and reconstructs the game state using object methods."""
@@ -163,20 +157,22 @@ class Game:
                 if saved_room_coords:
                     game_map.current_room_coords = tuple(saved_room_coords)
 
-            persistent_data = {"player": player, "game_map": game_map}
+            # Populate the context object
+            self.context.player = player
+            self.context.game_map = game_map
             starting_state = save_data["last_state"]
 
-            return persistent_data, starting_state
+            return starting_state
         except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
             print(f"Could not load save game: {e}")
             return None, None
 
     def load_and_start_from_save(self):
         """Loads data and flips to the appropriate game state."""
-        persistent_data, starting_state_name = self.load_game_data()
-        if persistent_data and starting_state_name:
-            self.state_stack = []  # Clear stack
-            new_state = create_state(starting_state_name, self, persistent_data)
+        starting_state_name = self.load_game_data()
+        if starting_state_name:
+            self.state_stack = []
+            new_state = create_state(starting_state_name, self)
             self.state_stack.append(new_state)
 
     def save_game_data(self):
@@ -186,8 +182,8 @@ class Game:
         if hasattr(active_state, "previous_state"):
             gameplay_state = active_state.previous_state
 
-        player = gameplay_state.persistent_data.get("player")
-        game_map = gameplay_state.persistent_data.get("game_map")
+        player = self.context.player
+        game_map = self.context.game_map
 
         if not player:
             print("Cannot save: No active player found.")
