@@ -1,0 +1,9 @@
+{
+    "blacksmith_starter_wares": {
+        "inventory": [
+            "healing_potion",
+            "healing_potion",
+            "healing_potion"
+        ]
+    }
+}

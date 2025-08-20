@@ -1,0 +1,12 @@
+{
+    "healing_potion": {
+        "name": "Healing Potion",
+        "value": 50,
+        "type": "consumable"
+    },
+    "goblin_ear": {
+        "name": "Goblin Ear",
+        "value": 5,
+        "type": "junk"
+    }
+}

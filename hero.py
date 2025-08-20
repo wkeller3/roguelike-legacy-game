@@ -2,7 +2,7 @@
 
 import pygame
 import constants as C
-from factories import WEAPON_TEMPLATES
+from factories import WEAPON_TEMPLATES, ITEM_TEMPLATES
 
 
 # Make the Hero class a Pygame Sprite for 2D game object functionality.
@@ -40,11 +40,12 @@ class Hero(pygame.sprite.Sprite):
         self.first_name = first_name
         self.family_name = family_name
 
-        # --- MODIFIED: Start with base stats instead of randomizing ---
+        # --- Start with base stats instead of randomizing ---
         # We will set these manually after creation
         self.health = C.PLAYER_STARTING_HEALTH
         self.max_health = C.PLAYER_STARTING_HEALTH
         self.gold = 0
+        self.inventory = []
         self.stats = {"Strength": 1, "Dexterity": 1, "Intelligence": 1, "Luck": 1}
         possible_traits = ["Brave", "Cautious", "Avaricious", "Kind", "Clever"]
         self.traits = []  # Traits can be added later in the game
@@ -87,6 +88,7 @@ class Hero(pygame.sprite.Sprite):
             "family_name": self.family_name,
             "health": self.health,
             "gold": self.gold,
+            "inventory": [item.item_id for item in self.inventory],
             "stats": self.stats,
             "equipped_weapon_id": weapon_id,
             "position": {
@@ -106,6 +108,11 @@ class Hero(pygame.sprite.Sprite):
         )
         player.health = data["health"]
         player.gold = data["gold"]
+        # --- Recreate the inventory from saved IDs ---
+        player.inventory = []
+        if "inventory" in data:
+            for item_id in data["inventory"]:
+                player.inventory.append(ITEM_TEMPLATES[item_id])
         player.stats = data["stats"]
         if data["equipped_weapon_id"]:
             player.equipped_weapon = WEAPON_TEMPLATES[data["equipped_weapon_id"]]

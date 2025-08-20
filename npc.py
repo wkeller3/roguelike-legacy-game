@@ -17,6 +17,9 @@ class NPC(pygame.sprite.Sprite):
         # --- Load the entire node structure ---
         self.dialogue_nodes = template_data.get("dialogue_nodes", {})
 
+        self.npc_type = template_data.get("npc_type", "dialogue")
+        self.vendor_id = template_data.get("vendor_id", None)
+
         # Visual representation
         self.image = pygame.Surface((32, 32))
         self.image.fill(C.YELLOW)

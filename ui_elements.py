@@ -300,7 +300,21 @@ class CharacterSheet(UIElement):
         inv_header = self.font_header.render("Inventory", True, C.WHITE)
         screen.blit(inv_header, (x_offset, y_offset))
         inv_text = self.font_text.render("Empty", True, C.GRAY)
-        screen.blit(inv_text, (x_offset + 10, y_offset + 40))
+        y_offset += 40
+
+        if not self.player.inventory:
+            inv_text = self.font_text.render("Empty", True, C.GRAY)
+            screen.blit(inv_text, (x_offset + 10, y_offset))
+        else:
+            for i, item in enumerate(self.player.inventory):
+                # We can only show a few items, add scrolling later if needed
+                if i > 4:
+                    etc_text = self.font_text.render("...", True, C.GRAY)
+                    screen.blit(etc_text, (x_offset + 10, y_offset))
+                    break
+                item_text = self.font_text.render(f"- {item.name}", True, C.GRAY)
+                screen.blit(item_text, (x_offset + 10, y_offset))
+                y_offset += 30
 
 
 class PauseMenu(UIElement):
@@ -438,3 +452,37 @@ class MainMenu(UIElement):
 
         self.new_game_button.draw(screen)
         self.load_game_button.draw(screen)
+
+
+class ShopUI(UIElement):
+    """A UI component for the shop/vendor screen."""
+
+    def __init__(self, game):
+        rect = pygame.Rect(50, 50, C.SCREEN_WIDTH - 100, C.SCREEN_HEIGHT - 100)
+        super().__init__(rect)
+        self.game = game
+        self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
+
+    def handle_event(self, event):
+        # We will add buy/sell button logic here later
+        pass
+
+    def draw(self, screen):
+        # Draw a semi-transparent background for the whole screen
+        overlay = pygame.Surface((C.SCREEN_WIDTH, C.SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        screen.blit(overlay, (0, 0))
+
+        # Draw the menu panel
+        pygame.draw.rect(screen, (30, 30, 40), self.rect)
+        pygame.draw.rect(screen, C.WHITE, self.rect, 2)
+
+        # Draw title
+        title_text = self.font_title.render("Shop", True, C.WHITE)
+        title_rect = title_text.get_rect(centerx=self.rect.centerx, y=self.rect.y + 20)
+        screen.blit(title_text, title_rect)
+
+        # Placeholder for inventory (to be built next)
+        inv_text = self.font_title.render("Coming Soon...", True, C.GRAY)
+        inv_rect = inv_text.get_rect(center=self.rect.center)
+        screen.blit(inv_text, inv_rect)

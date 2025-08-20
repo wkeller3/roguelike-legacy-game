@@ -14,9 +14,9 @@ class GameContext:
         self.game_map: GameMap = None
 
         # These are used for transitions to/from the overworld
-        self.entry_direction = None
-        self.exit_to_overworld_from = None
-        self.overworld_entry_direction = None
+        self.entry_direction: str = None
+        self.exit_to_overworld_from: str = None
+        self.overworld_entry_direction: str = None
 
         # This is used to pass the active enemy into combat
         self.active_enemy = None

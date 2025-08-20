@@ -1,14 +1,18 @@
 # factories.py
 import json
 from enemy import Enemy
+from item import Item
 from weapon import Weapon
 
-# --- Load all weapon and enemy data at startup ---
+# --- Load all weapon, enemy, and item data at startup ---
 with open("weapons.json", "r") as f:
     WEAPON_TEMPLATES_DATA = json.load(f)
 
 with open("enemies.json", "r") as f:
     ENEMY_TEMPLATES = json.load(f)
+
+with open("items.json", "r") as f:
+    ITEM_TEMPLATES_DATA = json.load(f)
 
 # Create a dictionary of Weapon objects, ready to be used
 WEAPON_TEMPLATES = {
@@ -19,6 +23,15 @@ WEAPON_TEMPLATES = {
         crit_multiplier=w_data["crit_multiplier"],
     )
     for w_id, w_data in WEAPON_TEMPLATES_DATA.items()
+}
+
+ITEM_TEMPLATES = {
+    i_id: Item(
+        item_id=i_id,
+        name=i_data["name"],
+        value=i_data["value"],
+    )
+    for i_id, i_data in ITEM_TEMPLATES_DATA.items()
 }
 
 

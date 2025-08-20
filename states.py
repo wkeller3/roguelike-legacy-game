@@ -14,6 +14,7 @@ from ui_elements import (
     Button,
     MainMenu,
     PauseMenu,
+    ShopUI,
     TextBox,
     DialogueBox,
     CharacterSheet,
@@ -251,8 +252,10 @@ class TownState(GameplayState):
                 self.game.push_state("PAUSE")
             if event.key == pygame.K_e:
                 if self.nearby_npc:
-                    # Start dialogue if not already active
-                    self.dialogue_box.start_dialogue(self.nearby_npc)
+                    if self.nearby_npc.npc_type == "vendor":
+                        self.game.push_state("SHOP")
+                    else:  # Default to dialogue
+                        self.dialogue_box.start_dialogue(self.nearby_npc)
             if event.key == pygame.K_c:
                 self.game.push_state("CHAR_SHEET")
 
@@ -733,6 +736,27 @@ class PauseState(GameplayState):
         self.menu_ui.draw(screen)
 
 
+class ShopState(GameplayState):
+    """A state for interacting with a vendor."""
+
+    def __init__(self, game):
+        super().__init__(game)
+        self.previous_state = game.state_stack[-1]
+        self.shop_ui = ShopUI(game)
+        # In the future, we would pass the vendor's data here
+
+    def handle_events(self, event):
+        super().handle_events(event)
+        self.shop_ui.handle_event(event)
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.game.pop_state()
+
+    def draw(self, screen):
+        self.previous_state.draw(screen)
+        self.shop_ui.draw(screen)
+
+
 # A mapping of state names to their respective classes
 STATE_MAP = {
     "CHAR_CREATION": CharCreationState,
@@ -744,6 +768,7 @@ STATE_MAP = {
     "CHAR_SHEET": CharacterSheetState,
     "PAUSE": PauseState,
     "MAIN_MENU": MainMenuState,
+    "SHOP": ShopState,
 }
 
 
