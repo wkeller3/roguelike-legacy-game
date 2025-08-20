@@ -22,8 +22,7 @@ from ui_elements import (
 
 class BaseState:
     """
-    A base class for all game states. It now gets a reference to the main
-    game object and its shared context.
+    The base class for all states, now using the GameContext.
     """
 
     def __init__(self, game):
@@ -46,9 +45,7 @@ class BaseState:
 
 
 class CharCreationState(BaseState):
-    """
-    The state for creating a new character.
-    """
+    """The character creation state."""
 
     def __init__(self, game, initial_data):
         super().__init__(game)
@@ -81,8 +78,10 @@ class CharCreationState(BaseState):
             player.equipped_weapon = self.data["weapon_choices"][
                 self.data["selected_weapon_idx"]
             ]
+
             # Populate the shared game context
             self.context.player = player
+
             self.done = True
             self.next_state = "TOWN"
         # Handle other mouse clicks (name box, weapon selection)
@@ -174,9 +173,7 @@ class MainMenuState(BaseState):
 
 
 class GameplayState(BaseState):
-    """
-    An intermediate class for states that share the main gameplay data.
-    """
+    """Intermediate class for states that share the main gameplay data."""
 
     def __init__(self, game):
         super().__init__(game)
@@ -204,9 +201,7 @@ class GameplayState(BaseState):
 
 
 class TownState(GameplayState):
-    """
-    The state for the main town or hub area.
-    """
+    """The state for the main town or hub area."""
 
     def __init__(self, game):
         super().__init__(game)
@@ -350,17 +345,16 @@ class OverworldState(GameplayState):
         super().handle_events(event)
 
     def update(self, dt):
-        player_speed = C.PLAYER_SPEED
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            dx = -player_speed
+            dx = -C.PLAYER_SPEED
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            dx = player_speed
+            dx = C.PLAYER_SPEED
         if keys[pygame.K_UP] or keys[pygame.K_w]:
-            dy = -player_speed
+            dy = -C.PLAYER_SPEED
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            dy = player_speed
+            dy = C.PLAYER_SPEED
         if dx != 0 or dy != 0:
             self.player_avatar.move_ip(dx, dy)
         # --- Dynamic entry direction logic ---
@@ -759,4 +753,5 @@ def create_state(state_name, game, initial_data=None):
     if state_name == "CHAR_CREATION":
         return state_class(game, initial_data)
     else:
+        # Assumes all other states take the game object
         return state_class(game)
