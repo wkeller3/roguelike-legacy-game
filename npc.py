@@ -24,3 +24,5 @@ class NPC(pygame.sprite.Sprite):
         self.image = pygame.Surface((32, 32))
         self.image.fill(C.YELLOW)
         self.rect = self.image.get_rect(center=pos)
+
+        self.inventory = []

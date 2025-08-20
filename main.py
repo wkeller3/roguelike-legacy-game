@@ -111,9 +111,9 @@ class Game:
     def get_active_state(self):
         return self.state_stack[-1]
 
-    def push_state(self, state_name):
+    def push_state(self, state_name, **kwargs):
         """Pushes a new state onto the stack."""
-        new_state = create_state(state_name, self)
+        new_state = create_state(state_name, self, **kwargs)
         self.state_stack.append(new_state)
 
     def pop_state(self):

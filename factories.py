@@ -14,6 +14,9 @@ with open("enemies.json", "r") as f:
 with open("items.json", "r") as f:
     ITEM_TEMPLATES_DATA = json.load(f)
 
+with open("vendors.json", "r") as f:
+    VENDOR_INVENTORIES = json.load(f)
+
 # Create a dictionary of Weapon objects, ready to be used
 WEAPON_TEMPLATES = {
     w_id: Weapon(

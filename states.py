@@ -3,6 +3,7 @@
 import pygame
 import random
 import constants as C
+from factories import ITEM_TEMPLATES, VENDOR_INVENTORIES
 from hero import Hero
 from npc import NPC
 from gamemap import GameMap
@@ -253,7 +254,7 @@ class TownState(GameplayState):
             if event.key == pygame.K_e:
                 if self.nearby_npc:
                     if self.nearby_npc.npc_type == "vendor":
-                        self.game.push_state("SHOP")
+                        self.game.push_state("SHOP", vendor=self.nearby_npc)
                     else:  # Default to dialogue
                         self.dialogue_box.start_dialogue(self.nearby_npc)
             if event.key == pygame.K_c:
@@ -739,11 +740,19 @@ class PauseState(GameplayState):
 class ShopState(GameplayState):
     """A state for interacting with a vendor."""
 
-    def __init__(self, game):
+    def __init__(self, game, vendor):
         super().__init__(game)
+        self.vendor = vendor
         self.previous_state = game.state_stack[-1]
-        self.shop_ui = ShopUI(game)
-        # In the future, we would pass the vendor's data here
+
+        # Populate vendor's inventory if it's empty
+        if not self.vendor.inventory and self.vendor.vendor_id:
+            item_ids = VENDOR_INVENTORIES.get(self.vendor.vendor_id, {}).get(
+                "inventory", []
+            )
+            self.vendor.inventory = [ITEM_TEMPLATES[i_id] for i_id in item_ids]
+
+        self.shop_ui = ShopUI(game, self.vendor, self.player)
 
     def handle_events(self, event):
         super().handle_events(event)
@@ -751,6 +760,24 @@ class ShopState(GameplayState):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.game.pop_state()
+
+    def buy_item(self, item_index):
+        """Logic for the player buying an item."""
+        item = self.vendor.inventory[item_index]
+        if self.player.gold >= item.value:
+            self.player.gold -= item.value
+            self.player.inventory.append(item)
+            self.vendor.inventory.pop(item_index)
+            print(f"Bought {item.name}")
+
+    def sell_item(self, item_index):
+        """Logic for the player selling an item."""
+        item = self.player.inventory[item_index]
+        sell_price = item.value // 2  # Sell for half price
+        self.player.gold += sell_price
+        self.vendor.inventory.append(item)
+        self.player.inventory.pop(item_index)
+        print(f"Sold {item.name}")
 
     def draw(self, screen):
         self.previous_state.draw(screen)
@@ -772,11 +799,11 @@ STATE_MAP = {
 }
 
 
-def create_state(state_name, game, initial_data=None):
+def create_state(state_name, game, initial_data=None, **kwargs):
     """Factory function to create state instances."""
     state_class = STATE_MAP[state_name]
     if state_name == "CHAR_CREATION":
         return state_class(game, initial_data)
     else:
         # Assumes all other states take the game object
-        return state_class(game)
+        return state_class(game, **kwargs)

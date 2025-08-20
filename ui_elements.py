@@ -457,32 +457,91 @@ class MainMenu(UIElement):
 class ShopUI(UIElement):
     """A UI component for the shop/vendor screen."""
 
-    def __init__(self, game):
+    def __init__(self, game, vendor, player):
         rect = pygame.Rect(50, 50, C.SCREEN_WIDTH - 100, C.SCREEN_HEIGHT - 100)
         super().__init__(rect)
         self.game = game
-        self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
+        self.vendor = vendor
+        self.player = player
+        self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
+        self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
+        self.buy_buttons = []
+        self.sell_buttons = []
 
     def handle_event(self, event):
-        # We will add buy/sell button logic here later
-        pass
+        for i, button in enumerate(self.buy_buttons):
+            if button.handle_event(event):
+                self.game.get_active_state().buy_item(i)
+                return  # Prevent multiple actions in one click
+
+        for i, button in enumerate(self.sell_buttons):
+            if button.handle_event(event):
+                self.game.get_active_state().sell_item(i)
+                return
 
     def draw(self, screen):
-        # Draw a semi-transparent background for the whole screen
+        # Draw a background for the whole screen
         overlay = pygame.Surface((C.SCREEN_WIDTH, C.SCREEN_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 200))
         screen.blit(overlay, (0, 0))
 
-        # Draw the menu panel
+        # Draw the main panel
         pygame.draw.rect(screen, (30, 30, 40), self.rect)
         pygame.draw.rect(screen, C.WHITE, self.rect, 2)
 
-        # Draw title
-        title_text = self.font_title.render("Shop", True, C.WHITE)
-        title_rect = title_text.get_rect(centerx=self.rect.centerx, y=self.rect.y + 20)
-        screen.blit(title_text, title_rect)
+        # --- Vendor's Inventory ---
+        vendor_header = self.font_header.render(
+            f"{self.vendor.name}'s Wares", True, C.WHITE
+        )
+        screen.blit(vendor_header, (self.rect.x + 20, self.rect.y + 20))
+        self.buy_buttons = []
+        y_offset = self.rect.y + 70
+        for i, item in enumerate(self.vendor.inventory):
+            item_text = self.font_text.render(
+                f"{item.name} ({item.value}g)", True, C.WHITE
+            )
+            screen.blit(item_text, (self.rect.x + 20, y_offset))
 
-        # Placeholder for inventory (to be built next)
-        inv_text = self.font_title.render("Coming Soon...", True, C.GRAY)
-        inv_rect = inv_text.get_rect(center=self.rect.center)
-        screen.blit(inv_text, inv_rect)
+            buy_button = Button(
+                self.rect.x + 250,
+                y_offset - 5,
+                80,
+                30,
+                "Buy",
+                self.font_text,
+                C.GREEN,
+                C.GRAY,
+            )
+            if self.player.gold < item.value:
+                buy_button.is_disabled = True
+            self.buy_buttons.append(buy_button)
+            buy_button.draw(screen)
+            y_offset += 40
+
+        # --- Player's Inventory ---
+        player_header = self.font_header.render("Your Inventory", True, C.WHITE)
+        screen.blit(player_header, (self.rect.centerx + 20, self.rect.y + 20))
+        player_gold = self.font_text.render(f"Gold: {self.player.gold}", True, C.GOLD)
+        screen.blit(player_gold, (self.rect.centerx + 20, self.rect.y + 50))
+
+        self.sell_buttons = []
+        y_offset = self.rect.y + 100
+        for i, item in enumerate(self.player.inventory):
+            item_text = self.font_text.render(
+                f"{item.name} ({item.value // 2}g)", True, C.WHITE
+            )  # Sell for half price
+            screen.blit(item_text, (self.rect.centerx + 20, y_offset))
+
+            sell_button = Button(
+                self.rect.centerx + 250,
+                y_offset - 5,
+                80,
+                30,
+                "Sell",
+                self.font_text,
+                C.YELLOW,
+                C.GRAY,
+            )
+            self.sell_buttons.append(sell_button)
+            sell_button.draw(screen)
+            y_offset += 40
