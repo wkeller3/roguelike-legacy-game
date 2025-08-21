@@ -24,6 +24,7 @@ WEAPON_TEMPLATES = {
         base_damage=tuple(w_data["base_damage"]),
         crit_chance=w_data["crit_chance"],
         crit_multiplier=w_data["crit_multiplier"],
+        value=w_data.get("value", 0),  # Default value to 0 if not specified
     )
     for w_id, w_data in WEAPON_TEMPLATES_DATA.items()
 }
@@ -33,9 +34,12 @@ ITEM_TEMPLATES = {
         item_id=i_id,
         name=i_data["name"],
         value=i_data["value"],
+        item_type=i_data["type"],
     )
     for i_id, i_data in ITEM_TEMPLATES_DATA.items()
 }
+
+OBJECT_TEMPLATES = {**WEAPON_TEMPLATES, **ITEM_TEMPLATES}
 
 
 def create_enemy(enemy_name, x, y):
