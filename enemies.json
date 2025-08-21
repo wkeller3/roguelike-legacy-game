@@ -40,14 +40,8 @@
         "drop_chance": 0.2
       },
       {
-        "item_id": "test_item",
-        "drop_chance": 1.0
-      }
-    ],
-    "weapon_drops": [
-      {
         "item_id": "rusty_dagger",
-        "drop_chance": 1.0
+        "drop_chance": 1
       }
     ]
   },
@@ -86,9 +80,7 @@
       {
         "item_id": "healing_potion",
         "drop_chance": 0.1
-      }
-    ],
-    "weapon_drops": [
+      },
       {
         "item_id": "crude_axe",
         "drop_chance": 0.05

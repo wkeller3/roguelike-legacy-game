@@ -1,17 +1,29 @@
 {
+    "broadsword": {
+        "name": "Broadsword", "type": "weapon", "value": 150,
+        "base_damage": [8, 12], "crit_chance": 0.05, "crit_multiplier": 1.5
+    },
+    "twin_daggers": {
+        "name": "Twin Daggers", "type": "weapon", "value": 120,
+        "base_damage": [4, 6], "crit_chance": 0.15, "crit_multiplier": 1.5
+    },
+    "iron_staff": {
+        "name": "Iron Staff", "type": "weapon", "value": 100,
+        "base_damage": [6, 8], "crit_chance": 0.05, "crit_multiplier": 2.0
+    },
+    "rusty_dagger": {
+        "name": "Rusty Dagger", "type": "weapon", "value": 5,
+        "base_damage": [3, 6], "crit_chance": 0.1, "crit_multiplier": 1.5
+    },
+    "crude_axe": {
+        "name": "Crude Axe", "type": "weapon", "value": 10,
+        "base_damage": [5, 10], "crit_chance": 0.05, "crit_multiplier": 1.5
+    },
     "healing_potion": {
-        "name": "Healing Potion",
-        "value": 10,
-        "type": "consumable"
+        "name": "Healing Potion", "type": "consumable", "value": 50,
+        "effect": { "heal_amount": 25 }
     },
     "goblin_ear": {
-        "name": "Goblin Ear",
-        "value": 5,
-        "type": "junk"
-    },
-    "test_item": {
-        "name": "Test Item",
-        "value": 100,
-        "type": "junk"
+        "name": "Goblin Ear", "type": "junk", "value": 5
     }
 }

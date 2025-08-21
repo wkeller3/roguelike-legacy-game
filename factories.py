@@ -1,45 +1,42 @@
 # factories.py
 import json
 from enemy import Enemy
-from item import Item
-from weapon import Weapon
+from item import Item, Weapon, Consumable
 
 # --- Load all weapon, enemy, and item data at startup ---
-with open("weapons.json", "r") as f:
-    WEAPON_TEMPLATES_DATA = json.load(f)
+with open("items.json", "r") as f:
+    ITEM_TEMPLATES_DATA = json.load(f)
 
 with open("enemies.json", "r") as f:
     ENEMY_TEMPLATES = json.load(f)
-
-with open("items.json", "r") as f:
-    ITEM_TEMPLATES_DATA = json.load(f)
 
 with open("vendors.json", "r") as f:
     VENDOR_INVENTORIES = json.load(f)
 
 # Create a dictionary of Weapon objects, ready to be used
-WEAPON_TEMPLATES = {
-    w_id: Weapon(
-        name=w_data["name"],
-        base_damage=tuple(w_data["base_damage"]),
-        crit_chance=w_data["crit_chance"],
-        crit_multiplier=w_data["crit_multiplier"],
-        value=w_data.get("value", 0),  # Default value to 0 if not specified
-    )
-    for w_id, w_data in WEAPON_TEMPLATES_DATA.items()
-}
-
-ITEM_TEMPLATES = {
-    i_id: Item(
-        item_id=i_id,
-        name=i_data["name"],
-        value=i_data["value"],
-        item_type=i_data["type"],
-    )
-    for i_id, i_data in ITEM_TEMPLATES_DATA.items()
-}
-
-OBJECT_TEMPLATES = {**WEAPON_TEMPLATES, **ITEM_TEMPLATES}
+ITEM_TEMPLATES = {}
+for item_id, item_data in ITEM_TEMPLATES_DATA.items():
+    item_type = item_data.get("type", "junk")
+    if item_type == "weapon":
+        ITEM_TEMPLATES[item_id] = Weapon(
+            item_id=item_id,
+            name=item_data["name"],
+            value=item_data["value"],
+            base_damage=tuple(item_data["base_damage"]),
+            crit_chance=item_data["crit_chance"],
+            crit_multiplier=item_data["crit_multiplier"],
+        )
+    elif item_type == "consumable":
+        ITEM_TEMPLATES[item_id] = Consumable(
+            item_id=item_id,
+            name=item_data["name"],
+            value=item_data["value"],
+            effect=item_data["effect"],
+        )
+    else:  # Default to a basic item
+        ITEM_TEMPLATES[item_id] = Item(
+            item_id=item_id, name=item_data["name"], value=item_data["value"]
+        )
 
 
 def create_enemy(enemy_name, x, y):
@@ -56,7 +53,7 @@ def create_enemy(enemy_name, x, y):
     """
     template = ENEMY_TEMPLATES[enemy_name]
     weapon_id = template["weapon"]
-    weapon = WEAPON_TEMPLATES[weapon_id]
+    weapon = ITEM_TEMPLATES[weapon_id]
     return Enemy(x, y, template, weapon)
 
 

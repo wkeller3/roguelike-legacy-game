@@ -4,7 +4,7 @@ import pygame
 import json
 import constants as C
 from gamemap import GameMap
-from weapon import Weapon
+from item import Weapon
 from ui_elements import Button
 from states import STATE_MAP, create_state
 from hero import Hero
@@ -51,12 +51,12 @@ class Game:
             self.context.player = player
             self.state_stack.append(create_state("TOWN", self))
         else:
-            char_creation_data = self.load_char_creation_data()
+            # char_creation_data = self.load_char_creation_data()
             self.state_stack.append(create_state("MAIN_MENU", self))
 
     def load_char_creation_data(self):
         """Loads and prepares all data needed for the character creation screen."""
-        with open("weapons.json", "r") as f:
+        with open("items.json", "r") as f:
             weapons_data = json.load(f)
         starter_weapon_ids = ["broadsword", "twin_daggers", "iron_staff"]
         weapon_objects = [
@@ -65,6 +65,8 @@ class Game:
                 base_damage=tuple(weapons_data[w_id]["base_damage"]),
                 crit_chance=weapons_data[w_id]["crit_chance"],
                 crit_multiplier=weapons_data[w_id]["crit_multiplier"],
+                item_id=w_id,
+                value=weapons_data[w_id]["value"],
             )
             for w_id in starter_weapon_ids
         ]

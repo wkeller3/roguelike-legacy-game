@@ -2,7 +2,7 @@
 
 import pygame
 import constants as C
-from factories import WEAPON_TEMPLATES, ITEM_TEMPLATES, OBJECT_TEMPLATES
+from factories import ITEM_TEMPLATES
 
 
 # Make the Hero class a Pygame Sprite for 2D game object functionality.
@@ -78,7 +78,7 @@ class Hero(pygame.sprite.Sprite):
         weapon_id = next(
             (
                 w_id
-                for w_id, w_obj in WEAPON_TEMPLATES.items()
+                for w_id, w_obj in ITEM_TEMPLATES.items()
                 if w_obj.name == self.equipped_weapon.name
             ),
             None,
@@ -88,7 +88,7 @@ class Hero(pygame.sprite.Sprite):
             "family_name": self.family_name,
             "health": self.health,
             "gold": self.gold,
-            "inventory": [object.object_id for object in self.inventory],
+            "inventory": [item.item_id for item in self.inventory],
             "stats": self.stats,
             "equipped_weapon_id": weapon_id,
             "position": {
@@ -111,9 +111,9 @@ class Hero(pygame.sprite.Sprite):
         # --- Recreate the inventory from saved IDs ---
         player.inventory = []
         if "inventory" in data:
-            for object_id in data["inventory"]:
-                player.inventory.append(OBJECT_TEMPLATES[object_id])
+            for item_id in data["inventory"]:
+                player.inventory.append(ITEM_TEMPLATES[item_id])
         player.stats = data["stats"]
         if data["equipped_weapon_id"]:
-            player.equipped_weapon = WEAPON_TEMPLATES[data["equipped_weapon_id"]]
+            player.equipped_weapon = ITEM_TEMPLATES[data["equipped_weapon_id"]]
         return player

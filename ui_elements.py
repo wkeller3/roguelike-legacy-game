@@ -3,6 +3,8 @@ import pygame
 import constants as C
 import os
 
+from item import Consumable, Weapon
+
 
 def wrap_text(text, font, max_width):
     """Wraps text to a specific width."""
@@ -223,14 +225,54 @@ class DialogueBox(UIElement):
 
 
 class CharacterSheet(UIElement):
-    """A UI component that draws all player information."""
+    """A UI component that draws all player information and handles inventory interaction."""
 
-    def __init__(self, player):
+    def __init__(self, game):
         rect = pygame.Rect(C.CHAR_SHEET_RECT)
         super().__init__(rect)
-        self.player = player
+        self.game = game
+        self.player = game.context.player
         self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
+
+        self.selected_item_idx = 0
+        self.inventory_rects = []
+        self.equip_button = Button(
+            self.rect.x + 300,
+            self.rect.bottom - 60,
+            120,
+            40,
+            "Equip",
+            self.font_text,
+            C.GREEN,
+            C.GRAY,
+        )
+        self.use_button = Button(
+            self.rect.x + 430,
+            self.rect.bottom - 60,
+            120,
+            40,
+            "Use",
+            self.font_text,
+            C.BLUE,
+            C.GRAY,
+        )
+
+    def handle_event(self, event):
+        # Handle button clicks
+        if self.equip_button.handle_event(event):
+            self.game.get_active_state().equip_item(self.selected_item_idx)
+        if self.use_button.handle_event(event):
+            self.game.get_active_state().use_item(self.selected_item_idx)
+
+        # Handle keyboard navigation for inventory
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                self.selected_item_idx = max(0, self.selected_item_idx - 1)
+            elif event.key == pygame.K_DOWN:
+                self.selected_item_idx = min(
+                    len(self.player.inventory) - 1, self.selected_item_idx + 1
+                )
 
     def draw(self, screen):
         # Draw background panel
@@ -295,26 +337,35 @@ class CharacterSheet(UIElement):
             no_weapon_text = self.font_text.render("None", True, C.GRAY)
             screen.blit(no_weapon_text, (x_offset + 10, y_offset + 40))
 
-        # --- Inventory Section (Right Column, moved down) ---
-        y_offset = self.rect.y + 280  # Adjusted y-position
+        # --- Interactive Inventory Section ---
+        x_offset = self.rect.x + 300
+        y_offset = self.rect.y + 280
         inv_header = self.font_header.render("Inventory", True, C.WHITE)
         screen.blit(inv_header, (x_offset, y_offset))
-        inv_text = self.font_text.render("Empty", True, C.GRAY)
         y_offset += 40
 
+        self.inventory_rects = []
         if not self.player.inventory:
             inv_text = self.font_text.render("Empty", True, C.GRAY)
             screen.blit(inv_text, (x_offset + 10, y_offset))
         else:
             for i, item in enumerate(self.player.inventory):
-                # We can only show a few items, add scrolling later if needed
-                if i > 4:
-                    etc_text = self.font_text.render("...", True, C.GRAY)
-                    screen.blit(etc_text, (x_offset + 10, y_offset))
-                    break
-                item_text = self.font_text.render(f"- {item.name}", True, C.GRAY)
-                screen.blit(item_text, (x_offset + 10, y_offset))
+                color = C.WHITE if i == self.selected_item_idx else C.GRAY
+                item_text = self.font_text.render(f"- {item.name}", True, color)
+                item_rect = screen.blit(item_text, (x_offset + 10, y_offset))
+                self.inventory_rects.append(item_rect)
                 y_offset += 30
+
+        # --- Draw Buttons ---
+        selected_item = (
+            self.player.inventory[self.selected_item_idx]
+            if self.player.inventory
+            else None
+        )
+        self.equip_button.is_disabled = not isinstance(selected_item, Weapon)
+        self.use_button.is_disabled = not isinstance(selected_item, Consumable)
+        self.equip_button.draw(screen)
+        self.use_button.draw(screen)
 
 
 class PauseMenu(UIElement):

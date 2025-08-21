@@ -2,8 +2,6 @@
 import pygame
 import random
 import math
-from weapon import Weapon
-import constants as C
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -34,7 +32,6 @@ class Enemy(pygame.sprite.Sprite):
         self.chase_radius = self.sight_radius + 50
         self.gold_drop_range = template_data.get("gold_drop_range", [1, 1])
         self.item_drops = template_data.get("item_drops", [])
-        self.weapon_drops = template_data.get("weapon_drops", [])
 
         # Equipment
         self.equipped_weapon = weapon

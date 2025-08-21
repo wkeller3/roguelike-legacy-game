@@ -3,8 +3,9 @@
 import pygame
 import random
 import constants as C
-from factories import ITEM_TEMPLATES, VENDOR_INVENTORIES, WEAPON_TEMPLATES
+from factories import ITEM_TEMPLATES, VENDOR_INVENTORIES
 from hero import Hero
+from item import Consumable, Weapon
 from npc import NPC
 from gamemap import GameMap
 from combat import resolve_attack
@@ -583,8 +584,6 @@ class CombatState(GameplayState):
             )
             # Check for item drops
             self.drop_chance(self.active_enemy.item_drops, ITEM_TEMPLATES)
-            # Check for weapon drops
-            self.drop_chance(self.active_enemy.weapon_drops, WEAPON_TEMPLATES)
 
             self.active_enemy.kill()
             if self.current_room.enemies.__len__() == 0:
@@ -727,10 +726,11 @@ class CharacterSheetState(GameplayState):
     def __init__(self, game):
         super().__init__(game)
         self.previous_state = game.state_stack[-1]
-        self.sheet_ui = CharacterSheet(self.player)
+        self.sheet_ui = CharacterSheet(game)  # Pass the whole game object
 
     def handle_events(self, event):
         super().handle_events(event)
+        self.sheet_ui.handle_event(event)  # Delegate to UI
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c or event.key == pygame.K_ESCAPE:
                 self.game.pop_state()
@@ -738,6 +738,25 @@ class CharacterSheetState(GameplayState):
     def draw(self, screen):
         self.previous_state.draw(screen)
         self.sheet_ui.draw(screen)
+
+    def use_item(self, item_index):
+        if 0 <= item_index < len(self.player.inventory):
+            item = self.player.inventory[item_index]
+            if isinstance(item, Consumable):
+                was_used = item.use(self.player)
+                if was_used:
+                    self.player.inventory.pop(item_index)
+
+    def equip_item(self, item_index):
+        if 0 <= item_index < len(self.player.inventory):
+            item = self.player.inventory[item_index]
+            if isinstance(item, Weapon):
+                # Swap with currently equipped weapon
+                if self.player.equipped_weapon:
+                    self.player.inventory.append(self.player.equipped_weapon)
+
+                self.player.equipped_weapon = item
+                self.player.inventory.pop(item_index)
 
 
 class PauseState(GameplayState):
