@@ -3,7 +3,6 @@
 import pygame
 import json
 import constants as C
-from factories import WEAPON_TEMPLATES
 from gamemap import GameMap
 from weapon import Weapon
 from ui_elements import Button

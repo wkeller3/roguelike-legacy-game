@@ -3,7 +3,7 @@
 import pygame
 import random
 import constants as C
-from factories import ITEM_TEMPLATES, VENDOR_INVENTORIES
+from factories import ITEM_TEMPLATES, VENDOR_INVENTORIES, WEAPON_TEMPLATES
 from hero import Hero
 from npc import NPC
 from gamemap import GameMap
@@ -554,6 +554,16 @@ class CombatState(GameplayState):
                 )
                 self.current_turn = "ENEMY"
 
+    def drop_chance(self, drop_list: list[dict], template_data):
+        """Determines if something drops based on its drop chance."""
+        for item in drop_list:
+            random_chance = random.random()
+            if random_chance < item["drop_chance"]:
+                self.player.inventory.append(template_data[item["item_id"]])
+                self.combat_log.append(
+                    f"You find a {template_data[item['item_id']].name}!"
+                )
+
     def update(self, dt):
         # Don't update logic if the fight is already won
         if self.phase == "VICTORY":
@@ -569,9 +579,21 @@ class CombatState(GameplayState):
             gold_to_add = random.randint(*self.active_enemy.gold_drop_range)
             self.player.gold += gold_to_add
             self.combat_log.append(
-                f"The {self.active_enemy.name} is defeated! You find {gold_to_add} gold."
+                f"The {self.active_enemy.name} is defeated! You find {gold_to_add} gold on them."
             )
+            # Check for item drops
+            self.drop_chance(self.active_enemy.item_drops, ITEM_TEMPLATES)
+            # Check for weapon drops
+            self.drop_chance(self.active_enemy.weapon_drops, WEAPON_TEMPLATES)
+
             self.active_enemy.kill()
+            if self.current_room.enemies.__len__() == 0:
+                # If no enemies left, give more gold for clearing the room
+                extra_gold = random.randint(10, 30)
+                self.player.gold += extra_gold
+                self.combat_log.append(
+                    f"You clear the room and find an additional {extra_gold} gold!"
+                )
             return
         if self.current_turn == "ENEMY":
             pygame.time.wait(C.COMBAT_ENEMY_TURN_DELAY)

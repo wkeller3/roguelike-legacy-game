@@ -1,28 +1,98 @@
 {
   "goblin": {
     "name": "Goblin",
-    "color": [255, 100, 100],
-    "health_range": [30, 45],
+    "color": [
+      255,
+      100,
+      100
+    ],
+    "health_range": [
+      30,
+      45
+    ],
     "stats": {
-      "Strength": [2, 4],
-      "Dexterity": [3, 6]
+      "Strength": [
+        2,
+        4
+      ],
+      "Dexterity": [
+        3,
+        6
+      ]
     },
-    "speed_range": [2.0, 2.5],
+    "speed_range": [
+      2,
+      2.5
+    ],
     "sight_radius": 300,
-    "gold_drop_range": [5, 15],
-    "weapon": "rusty_dagger"
+    "gold_drop_range": [
+      5,
+      15
+    ],
+    "weapon": "rusty_dagger",
+    "item_drops": [
+      {
+        "item_id": "goblin_ear",
+        "drop_chance": 0.5
+      },
+      {
+        "item_id": "healing_potion",
+        "drop_chance": 0.2
+      },
+      {
+        "item_id": "test_item",
+        "drop_chance": 1.0
+      }
+    ],
+    "weapon_drops": [
+      {
+        "item_id": "rusty_dagger",
+        "drop_chance": 0.1
+      }
+    ]
   },
   "orc": {
     "name": "Orc",
-    "color": [100, 200, 100],
-    "health_range": [60, 80],
+    "color": [
+      100,
+      200,
+      100
+    ],
+    "health_range": [
+      60,
+      80
+    ],
     "stats": {
-      "Strength": [5, 8],
-      "Dexterity": [1, 3]
+      "Strength": [
+        5,
+        8
+      ],
+      "Dexterity": [
+        1,
+        3
+      ]
     },
-    "speed_range": [1.2, 1.6],
+    "speed_range": [
+      1.2,
+      1.6
+    ],
     "sight_radius": 200,
-    "gold_drop_range": [20, 35],
-    "weapon": "crude_axe"
+    "gold_drop_range": [
+      20,
+      35
+    ],
+    "weapon": "crude_axe",
+    "item_drops": [
+      {
+        "item_id": "healing_potion",
+        "drop_chance": 0.1
+      }
+    ],
+    "weapon_drops": [
+      {
+        "item_id": "crude_axe",
+        "drop_chance": 0.05
+      }
+    ]
   }
 }
