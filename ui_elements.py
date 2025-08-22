@@ -355,6 +355,8 @@ class CharacterSheet(UIElement):
             inv_text = self.font_text.render("Empty", True, C.GRAY)
             screen.blit(inv_text, (x_offset + 10, y_offset))
         else:
+            if self.selected_item_idx >= len(self.player.inventory):
+                self.selected_item_idx = len(self.player.inventory) - 1
             for i, item in enumerate(self.player.inventory):
                 color = C.WHITE if i == self.selected_item_idx else C.GRAY
                 item_text = self.font_text.render(f"- {item.name}", True, color)
