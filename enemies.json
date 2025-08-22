@@ -1,6 +1,7 @@
 {
   "goblin": {
     "name": "Goblin",
+    "sprite": "assets/goblin.png",
     "color": [
       255,
       100,
@@ -47,6 +48,7 @@
   },
   "orc": {
     "name": "Orc",
+    "sprite": "assets/orc.png",
     "color": [
       100,
       200,

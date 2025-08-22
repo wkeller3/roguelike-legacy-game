@@ -2,6 +2,7 @@
 import pygame
 import random
 import math
+import constants as C
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -15,10 +16,17 @@ class Enemy(pygame.sprite.Sprite):
 
         # --- Configure from Template ---
         self.name = template_data["name"]
+        sprite_filename = template_data.get("sprite")
 
         # Appearance
-        self.image = pygame.Surface((32, 32))
-        self.image.fill(tuple(template_data["color"]))
+        # --- Load image from file if it exists ---
+        if sprite_filename:
+            loaded_image = pygame.image.load(sprite_filename).convert_alpha()
+            self.image = pygame.transform.scale(loaded_image, C.SPRITE_SIZE)
+        else:
+            # Fallback to the colored square
+            self.image = pygame.Surface((32, 32))
+            self.image.fill(tuple(template_data["color"]))
         self.rect = self.image.get_rect(center=(pos_x, pos_y))
 
         # Stats with random variation

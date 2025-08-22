@@ -62,3 +62,6 @@ MAP_ROOM_MARGIN = 10
 # --- Dungeon Generation ---
 MIN_ROOMS = 5
 MAX_ROOMS = 30
+
+# --- ENTITY SIZES ---
+SPRITE_SIZE = (64, 64)

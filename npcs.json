@@ -3,6 +3,7 @@
         {
             "name": "Old Villager",
             "pos": [650, 450],
+            "sprite": "assets/villager.png",
             "dialogue_nodes": {
                 "start": {
                     "text": "Greetings, traveler. Do you seek adventure, or news of the town?",
@@ -27,6 +28,7 @@
         },
         {
             "name": "Blacksmith",
+            "sprite": "assets/blacksmith.png",
             "pos": [150, 200],
             "npc_type": "vendor",
             "vendor_id": "blacksmith_starter_wares"
