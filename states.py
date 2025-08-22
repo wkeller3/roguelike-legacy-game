@@ -74,7 +74,7 @@ class CharCreationState(BaseState):
             # Create the hero and prepare the persistent data for the next state
             player = Hero(
                 first_name=self.data["name"],
-                family_name="The Bold",
+                family_name=self.data["family_name"],
                 pos_x=100,
                 pos_y=C.INTERNAL_HEIGHT / 2,
             )
@@ -91,23 +91,36 @@ class CharCreationState(BaseState):
         # Handle other mouse clicks (name box, weapon selection)
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.data["ui_elements"]["name_box"].collidepoint(event.pos):
+                self.data["family_name_active"] = False
                 self.data["name_active"] = True
+            elif self.data["ui_elements"]["family_name_box"].collidepoint(event.pos):
+                self.data["name_active"] = False
+                self.data["family_name_active"] = True
             else:
                 self.data["name_active"] = False
+                self.data["family_name_active"] = False
             for i in range(len(self.data["weapon_choices"])):
                 if self.data["ui_elements"][f"weapon_{i}_rect"].collidepoint(event.pos):
                     self.data["selected_weapon_idx"] = i
         # Handle keyboard input for the name box
-        if event.type == pygame.KEYDOWN and self.data["name_active"]:
-            if event.key == pygame.K_BACKSPACE:
-                self.data["name"] = self.data["name"][:-1]
-            elif len(self.data["name"]) < C.CHAR_CREATION_MAX_NAME_LENGTH:
-                self.data["name"] += event.unicode
+        if event.type == pygame.KEYDOWN:
+            if self.data["name_active"]:
+                if event.key == pygame.K_BACKSPACE:
+                    self.data["name"] = self.data["name"][:-1]
+                elif len(self.data["name"]) < C.CHAR_CREATION_MAX_NAME_LENGTH:
+                    self.data["name"] += event.unicode
+            elif self.data["family_name_active"]:
+                if event.key == pygame.K_BACKSPACE:
+                    self.data["family_name"] = self.data["family_name"][:-1]
+                elif len(self.data["family_name"]) < C.CHAR_CREATION_MAX_NAME_LENGTH:
+                    self.data["family_name"] += event.unicode
 
     def update(self, dt):
         # Update the 'done' button's disabled state based on completion criteria
         is_creation_complete = (
-            self.data["points_to_spend"] == 0 and self.data["name"].strip() != ""
+            self.data["points_to_spend"] == 0
+            and self.data["name"].strip() != ""
+            and self.data["family_name"].strip() != ""
         )
         self.data["ui_elements"]["done_button"].is_disabled = not is_creation_complete
 
@@ -117,6 +130,7 @@ class CharCreationState(BaseState):
         title_text = self.font_title.render("Create Your Legacy", True, C.WHITE)
         screen.blit(title_text, (C.INTERNAL_WIDTH / 2 - title_text.get_width() / 2, 20))
         # Name Section
+        screen.blit(self.font_header.render("First Name:", True, C.WHITE), (50, 50))
         pygame.draw.rect(
             screen,
             C.GRAY,
@@ -131,13 +145,29 @@ class CharCreationState(BaseState):
                 self.data["ui_elements"]["name_box"].y + 8,
             ),
         )
+        # Family name Section
+        screen.blit(self.font_header.render("Family Name:", True, C.WHITE), (50, 130))
+        pygame.draw.rect(
+            screen,
+            C.GRAY,
+            self.data["ui_elements"]["family_name_box"],
+            2 if not self.data["family_name_active"] else 3,
+        )
+        name_text = self.font_text.render(self.data["family_name"], True, C.WHITE)
+        screen.blit(
+            name_text,
+            (
+                self.data["ui_elements"]["family_name_box"].x + 10,
+                self.data["ui_elements"]["family_name_box"].y + 8,
+            ),
+        )
         # Stats Section
         points_text = self.font_header.render(
             f"Attribute Points: {self.data['points_to_spend']}", True, C.WHITE
         )
-        screen.blit(points_text, (50, 140))
+        screen.blit(points_text, (50, 240))
         for i, (stat, value) in enumerate(self.data["stats"].items()):
-            y_pos = 180 + i * 40
+            y_pos = 280 + i * 40
             stat_text = self.font_text.render(f"{stat}: {value}", True, C.WHITE)
             screen.blit(stat_text, (50, y_pos + 5))
             self.data["ui_elements"][f"{stat}_plus"].draw(screen)

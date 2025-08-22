@@ -99,6 +99,8 @@ class Game:
         data = {
             "name": "",
             "name_active": False,
+            "family_name": "",
+            "family_name_active": False,
             "points_to_spend": C.CHAR_CREATION_STARTING_POINTS,
             "stats": {"Strength": 1, "Dexterity": 1, "Intelligence": 1, "Luck": 1},
             "weapon_choices": weapon_objects,
@@ -109,7 +111,8 @@ class Game:
         font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
         font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
         data["ui_elements"]["name_box"] = pygame.Rect(50, 80, 300, 40)
-        stat_y_start = 180
+        data["ui_elements"]["family_name_box"] = pygame.Rect(50, 160, 300, 40)
+        stat_y_start = 280
         for i, stat in enumerate(data["stats"]):
             y_pos = stat_y_start + i * 40
             data["ui_elements"][f"{stat}_plus"] = Button(
