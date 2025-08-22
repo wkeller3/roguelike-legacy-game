@@ -373,7 +373,7 @@ class PauseMenu(UIElement):
 
     def __init__(self, game):
         rect = pygame.Rect(
-            C.SCREEN_WIDTH / 2 - 150, C.SCREEN_HEIGHT / 2 - 200, 300, 400
+            C.INTERNAL_WIDTH / 2 - 150, C.INTERNAL_HEIGHT / 2 - 200, 300, 400
         )
         super().__init__(rect)
         self.game = game
@@ -433,7 +433,7 @@ class PauseMenu(UIElement):
 
     def draw(self, screen):
         # Draw a semi-transparent background for the whole screen
-        overlay = pygame.Surface((C.SCREEN_WIDTH, C.SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         screen.blit(overlay, (0, 0))
 
@@ -457,7 +457,7 @@ class MainMenu(UIElement):
     """A UI component for the main menu."""
 
     def __init__(self, game):
-        rect = pygame.Rect(0, 0, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
+        rect = pygame.Rect(0, 0, C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT)
         super().__init__(rect)
         self.game = game
         self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE + 20)
@@ -509,7 +509,7 @@ class ShopUI(UIElement):
     """A UI component for the shop/vendor screen."""
 
     def __init__(self, game, vendor, player):
-        rect = pygame.Rect(50, 50, C.SCREEN_WIDTH - 100, C.SCREEN_HEIGHT - 100)
+        rect = pygame.Rect(50, 50, C.INTERNAL_WIDTH - 100, C.INTERNAL_HEIGHT - 100)
         super().__init__(rect)
         self.game = game
         self.vendor = vendor
@@ -532,7 +532,7 @@ class ShopUI(UIElement):
 
     def draw(self, screen):
         # Draw a background for the whole screen
-        overlay = pygame.Surface((C.SCREEN_WIDTH, C.SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 200))
         screen.blit(overlay, (0, 0))
 

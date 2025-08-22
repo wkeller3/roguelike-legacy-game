@@ -75,7 +75,7 @@ class CharCreationState(BaseState):
                 first_name=self.data["name"],
                 family_name="The Bold",
                 pos_x=100,
-                pos_y=C.SCREEN_HEIGHT / 2,
+                pos_y=C.INTERNAL_HEIGHT / 2,
             )
             player.stats = self.data["stats"]
             player.equipped_weapon = self.data["weapon_choices"][
@@ -114,7 +114,7 @@ class CharCreationState(BaseState):
         screen.fill(C.ROOM_COLOR)
         # Titles
         title_text = self.font_title.render("Create Your Legacy", True, C.WHITE)
-        screen.blit(title_text, (C.SCREEN_WIDTH / 2 - title_text.get_width() / 2, 20))
+        screen.blit(title_text, (C.INTERNAL_WIDTH / 2 - title_text.get_width() / 2, 20))
         # Name Section
         pygame.draw.rect(
             screen,
@@ -208,7 +208,7 @@ class TownState(GameplayState):
 
     def __init__(self, game):
         super().__init__(game)
-        self.town_room = Room(C.SCREEN_WIDTH, C.SCREEN_HEIGHT, room_type="town")
+        self.town_room = Room(C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT, room_type="town")
         self.town_room.add_player(self.player)
 
         # --- Load NPCs from the data file ---
@@ -216,17 +216,17 @@ class TownState(GameplayState):
         # Player repositioning logic
         entry_point = getattr(self.context, "entry_direction", "CENTER")
         if entry_point == "NORTH":
-            self.player.rect.midtop = (C.SCREEN_WIDTH / 2, 20)
+            self.player.rect.midtop = (C.INTERNAL_WIDTH / 2, 20)
         elif entry_point == "SOUTH":
-            self.player.rect.midbottom = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT - 20)
+            self.player.rect.midbottom = (C.INTERNAL_WIDTH / 2, C.INTERNAL_HEIGHT - 20)
         elif entry_point == "WEST":
-            self.player.rect.midleft = (20, C.SCREEN_HEIGHT / 2)
+            self.player.rect.midleft = (20, C.INTERNAL_HEIGHT / 2)
         elif entry_point == "EAST":
-            self.player.rect.midright = (C.SCREEN_WIDTH - 20, C.SCREEN_HEIGHT / 2)
+            self.player.rect.midright = (C.INTERNAL_WIDTH - 20, C.INTERNAL_HEIGHT / 2)
         else:  # Default for new game start
-            self.player.rect.center = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2)
+            self.player.rect.center = (C.INTERNAL_WIDTH / 2, C.INTERNAL_HEIGHT / 2)
 
-        hint_rect = pygame.Rect(0, C.SCREEN_HEIGHT - 60, C.SCREEN_WIDTH, 50)
+        hint_rect = pygame.Rect(0, C.INTERNAL_HEIGHT - 60, C.INTERNAL_WIDTH, 50)
         self.interaction_hint = TextBox("", hint_rect, self.font_text)
         self.interaction_hint.is_visible = False
         self.dialogue_box = DialogueBox()
@@ -277,7 +277,7 @@ class TownState(GameplayState):
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             dy = C.PLAYER_SPEED
         if dx != 0 or dy != 0:
-            self.player.move(dx, dy, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
+            self.player.move(dx, dy, C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT)
 
         # --- Check for nearby NPCs instead of just collision ---
         self.nearby_npc = None  # Reset each frame
@@ -299,11 +299,11 @@ class TownState(GameplayState):
         exit_direction = None
         if self.player.rect.top <= 0:
             exit_direction = "NORTH"
-        elif self.player.rect.bottom >= C.SCREEN_HEIGHT:
+        elif self.player.rect.bottom >= C.INTERNAL_HEIGHT:
             exit_direction = "SOUTH"
         elif self.player.rect.left <= 0:
             exit_direction = "WEST"
-        elif self.player.rect.right >= C.SCREEN_WIDTH:
+        elif self.player.rect.right >= C.INTERNAL_WIDTH:
             exit_direction = "EAST"
 
         if exit_direction:
@@ -385,8 +385,8 @@ class OverworldState(GameplayState):
                     new_dungeon_map = GameMap(
                         min_rooms=C.MIN_ROOMS,
                         max_rooms=C.MAX_ROOMS,
-                        screen_width=C.SCREEN_WIDTH,
-                        screen_height=C.SCREEN_HEIGHT,
+                        screen_width=C.INTERNAL_WIDTH,
+                        screen_height=C.INTERNAL_HEIGHT,
                         entry_direction=entry_direction,
                     )
                     self.context.game_map = new_dungeon_map
@@ -418,13 +418,19 @@ class ExploringState(GameplayState):
         if entry_point:
             # If it exists, position the player accordingly
             if entry_point == "NORTH":
-                self.player.rect.midtop = (C.SCREEN_WIDTH / 2, 20)
+                self.player.rect.midtop = (C.INTERNAL_WIDTH / 2, 20)
             elif entry_point == "SOUTH":
-                self.player.rect.midbottom = (C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT - 20)
+                self.player.rect.midbottom = (
+                    C.INTERNAL_WIDTH / 2,
+                    C.INTERNAL_HEIGHT - 20,
+                )
             elif entry_point == "WEST":
-                self.player.rect.midleft = (20, C.SCREEN_HEIGHT / 2)
+                self.player.rect.midleft = (20, C.INTERNAL_HEIGHT / 2)
             elif entry_point == "EAST":
-                self.player.rect.midright = (C.SCREEN_WIDTH - 20, C.SCREEN_HEIGHT / 2)
+                self.player.rect.midright = (
+                    C.INTERNAL_WIDTH - 20,
+                    C.INTERNAL_HEIGHT / 2,
+                )
             self.context.entry_direction = None
 
     def handle_events(self, event):
@@ -452,7 +458,7 @@ class ExploringState(GameplayState):
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             dy = C.PLAYER_SPEED
         if dx != 0 or dy != 0:
-            self.player.move(dx, dy, C.SCREEN_WIDTH, C.SCREEN_HEIGHT)
+            self.player.move(dx, dy, C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT)
 
         self.current_room.update(self.player)
 
@@ -462,12 +468,15 @@ class ExploringState(GameplayState):
             if exit_direction == "NORTH" and self.player.rect.top <= 0:
                 should_exit = True
             elif (
-                exit_direction == "SOUTH" and self.player.rect.bottom >= C.SCREEN_HEIGHT
+                exit_direction == "SOUTH"
+                and self.player.rect.bottom >= C.INTERNAL_HEIGHT
             ):
                 should_exit = True
             elif exit_direction == "WEST" and self.player.rect.left <= 0:
                 should_exit = True
-            elif exit_direction == "EAST" and self.player.rect.right >= C.SCREEN_WIDTH:
+            elif (
+                exit_direction == "EAST" and self.player.rect.right >= C.INTERNAL_WIDTH
+            ):
                 should_exit = True
             if should_exit:
                 self.context.exit_to_overworld_from = "Dungeon"
@@ -477,23 +486,23 @@ class ExploringState(GameplayState):
                 return
 
         new_room = None
-        if self.player.rect.right >= C.SCREEN_WIDTH:
+        if self.player.rect.right >= C.INTERNAL_WIDTH:
             new_room = self.game_map.move_to_room(dx=1, dy=0)
         elif self.player.rect.left <= 0:
             new_room = self.game_map.move_to_room(dx=-1, dy=0)
-        elif self.player.rect.bottom >= C.SCREEN_HEIGHT:
+        elif self.player.rect.bottom >= C.INTERNAL_HEIGHT:
             new_room = self.game_map.move_to_room(dx=0, dy=1)
         elif self.player.rect.top <= 0:
             new_room = self.game_map.move_to_room(dx=0, dy=-1)
         if new_room:
-            if self.player.rect.right >= C.SCREEN_WIDTH:
+            if self.player.rect.right >= C.INTERNAL_WIDTH:
                 self.player.rect.left = 10
             elif self.player.rect.left <= 0:
-                self.player.rect.right = C.SCREEN_WIDTH - 10
-            elif self.player.rect.bottom >= C.SCREEN_HEIGHT:
+                self.player.rect.right = C.INTERNAL_WIDTH - 10
+            elif self.player.rect.bottom >= C.INTERNAL_HEIGHT:
                 self.player.rect.top = 10
             elif self.player.rect.top <= 0:
-                self.player.rect.bottom = C.SCREEN_HEIGHT - 10
+                self.player.rect.bottom = C.INTERNAL_HEIGHT - 10
             self.current_room.remove_player(self.player)
             self.current_room = new_room
             self.current_room.add_player(self.player)
@@ -627,7 +636,7 @@ class CombatState(GameplayState):
         screen.fill(C.ROOM_COLOR)
         self.current_room.draw(screen)
         # Draw combat overlay
-        overlay = pygame.Surface((C.SCREEN_WIDTH, C.SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         screen.blit(overlay, (0, 0))
         # Draw HUD (player and enemy stats)
@@ -643,11 +652,11 @@ class CombatState(GameplayState):
                 True,
                 C.RED,
             )
-            screen.blit(enemy_health_text, (C.SCREEN_WIDTH - 250, 20))
+            screen.blit(enemy_health_text, (C.INTERNAL_WIDTH - 250, 20))
 
         # Combat Log (Bottom-Left)
         log_start_x = 20
-        log_start_y = C.SCREEN_HEIGHT - 150
+        log_start_y = C.INTERNAL_HEIGHT - 150
         line_height = 30
         messages_to_draw = self.combat_log[-4:]
         for i, message in enumerate(messages_to_draw):
@@ -657,8 +666,8 @@ class CombatState(GameplayState):
 
         # Action Menu (Bottom-Right) - only if combat is active
         if self.phase == "ACTIVE" and self.current_turn == "PLAYER":
-            menu_x = C.SCREEN_WIDTH - 250
-            menu_y = C.SCREEN_HEIGHT - 120
+            menu_x = C.INTERNAL_WIDTH - 250
+            menu_y = C.INTERNAL_HEIGHT - 120
             actions = ["[1] Attack", "[2] Power Attack", "[3] Defend"]
             for i, action in enumerate(actions):
                 action_text = self.font_text.render(action, True, C.WHITE)
@@ -666,14 +675,14 @@ class CombatState(GameplayState):
         if self.phase == "VICTORY":
             victory_text = font_title.render("VICTORY", True, C.GOLD)
             text_rect = victory_text.get_rect(
-                center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2 - 50)
+                center=(C.INTERNAL_WIDTH / 2, C.INTERNAL_HEIGHT / 2 - 50)
             )
             screen.blit(victory_text, text_rect)
             continue_text = self.font_text.render(
                 "Press any key to continue...", True, C.WHITE
             )
             continue_rect = continue_text.get_rect(
-                center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2 + 10)
+                center=(C.INTERNAL_WIDTH / 2, C.INTERNAL_HEIGHT / 2 + 10)
             )
             screen.blit(continue_text, continue_rect)
 
@@ -693,14 +702,14 @@ class GameOverState(GameplayState):
 
     def draw(self, screen):
         # Draw a dark overlay, similar to combat
-        overlay = pygame.Surface((C.SCREEN_WIDTH, C.SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay = pygame.Surface((C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 220))
         screen.blit(overlay, (0, 0))
 
         # Display Game Over text
         title_text = self.font_title.render("Your Legacy Ends Here", True, C.WHITE)
         title_rect = title_text.get_rect(
-            center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2 - 50)
+            center=(C.INTERNAL_WIDTH / 2, C.INTERNAL_HEIGHT / 2 - 50)
         )
         screen.blit(title_text, title_rect)
 
@@ -708,7 +717,7 @@ class GameOverState(GameplayState):
         hero_name = f"'{self.player.first_name} {self.player.family_name}' has fallen."
         name_text = self.font_text.render(hero_name, True, C.GRAY)
         name_rect = name_text.get_rect(
-            center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT / 2 + 10)
+            center=(C.INTERNAL_WIDTH / 2, C.INTERNAL_HEIGHT / 2 + 10)
         )
         screen.blit(name_text, name_rect)
 
@@ -717,7 +726,7 @@ class GameOverState(GameplayState):
             "Press any key to begin a new legacy.", True, C.WHITE
         )
         instr_rect = instr_text.get_rect(
-            center=(C.SCREEN_WIDTH / 2, C.SCREEN_HEIGHT - 100)
+            center=(C.INTERNAL_WIDTH / 2, C.INTERNAL_HEIGHT - 100)
         )
         screen.blit(instr_text, instr_rect)
 

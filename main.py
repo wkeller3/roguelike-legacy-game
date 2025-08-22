@@ -22,8 +22,13 @@ class Game:
 
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((C.SCREEN_WIDTH, C.SCREEN_HEIGHT))
-        pygame.display.set_caption("Legacy of the Cursed")
+        # The actual window the player sees, now resizable
+        self.display_screen = pygame.display.set_mode(
+            (C.DEFAULT_SCREEN_WIDTH, C.DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE
+        )
+        # The surface we will draw our fixed-resolution game onto
+        self.virtual_screen = pygame.Surface((C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT))
+        pygame.display.set_caption("Title is a WIP")
         self.clock = pygame.time.Clock()
         self.running = True
 
@@ -38,7 +43,7 @@ class Game:
                 first_name="Dev",
                 family_name="Tester",
                 pos_x=100,
-                pos_y=C.SCREEN_HEIGHT / 2,
+                pos_y=C.INTERNAL_HEIGHT / 2,
             )
             player.stats = {"Strength": 5, "Dexterity": 5, "Intelligence": 5, "Luck": 5}
             player.equipped_weapon = Weapon(
@@ -97,8 +102,8 @@ class Game:
                 450, weapon_y_start + i * 60, 320, 50
             )
         data["ui_elements"]["done_button"] = Button(
-            C.SCREEN_WIDTH / 2 - 100,
-            C.SCREEN_HEIGHT - 80,
+            C.INTERNAL_WIDTH / 2 - 100,
+            C.INTERNAL_HEIGHT - 80,
             200,
             50,
             "Create Hero",
@@ -146,8 +151,8 @@ class Game:
             game_map = None
             if save_data["map_data"]:
                 game_map = GameMap(
-                    screen_width=C.SCREEN_WIDTH,
-                    screen_height=C.SCREEN_HEIGHT,
+                    screen_width=C.INTERNAL_WIDTH,
+                    screen_height=C.INTERNAL_HEIGHT,
                     map_data=save_data["map_data"],
                 )
 
@@ -214,20 +219,57 @@ class Game:
         """The main game loop."""
         dt = 0
         while self.running:
-            for event in pygame.event.get():
+            # Calculate mouse scaling factor
+            display_size = self.display_screen.get_size()
+            scale_x = C.INTERNAL_WIDTH / display_size[0]
+            scale_y = C.INTERNAL_HEIGHT / display_size[1]
+            # Get all events from the queue
+            events = pygame.event.get()
+
+            # Handle events
+            for event in events:
+                # --- Scale mouse position for relevant events ---
+                if event.type in [
+                    pygame.MOUSEBUTTONDOWN,
+                    pygame.MOUSEBUTTONUP,
+                    pygame.MOUSEMOTION,
+                ]:
+                    # Create a new, scaled position tuple
+                    scaled_pos = (
+                        int(event.pos[0] * scale_x),
+                        int(event.pos[1] * scale_y),
+                    )
+                    # Replace the event's position with the scaled one
+                    event.pos = scaled_pos
                 if event.type == pygame.QUIT:
                     self.running = False
+                # --- Handle window resizing ---
+                if event.type == pygame.VIDEORESIZE:
+                    self.display_screen = pygame.display.set_mode(
+                        event.size, pygame.RESIZABLE
+                    )
+
+                # Pass events to the active state
                 self.get_active_state().handle_events(event)
 
+            # Update
             self.get_active_state().update(dt)
-
             if self.get_active_state().quit:
                 self.running = False
             elif self.get_active_state().done:
                 self.flip_state()
 
-            self.get_active_state().draw(self.screen)
+            # Draw
+            # --- Draw to the virtual screen first ---
+            self.get_active_state().draw(self.virtual_screen)
 
+            # --- Scale the virtual screen to the display screen ---
+            scaled_surface = pygame.transform.scale(
+                self.virtual_screen, self.display_screen.get_rect().size
+            )
+            self.display_screen.blit(scaled_surface, (0, 0))
+
+            # Update the actual display
             pygame.display.flip()
             dt = self.clock.tick(C.FPS) / 1000
 
