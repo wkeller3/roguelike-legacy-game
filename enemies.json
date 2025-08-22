@@ -41,7 +41,7 @@
       },
       {
         "item_id": "rusty_dagger",
-        "drop_chance": 1
+        "drop_chance": 0.1
       }
     ]
   },

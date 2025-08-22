@@ -49,6 +49,7 @@ class Hero(pygame.sprite.Sprite):
         self.stats = {"Strength": 1, "Dexterity": 1, "Intelligence": 1, "Luck": 1}
         possible_traits = ["Brave", "Cautious", "Avaricious", "Kind", "Clever"]
         self.traits = []  # Traits can be added later in the game
+        self.experience = 0
 
         # --- Equipment ---
         self.equipped_weapon = None  # Will be set after creation
@@ -88,6 +89,7 @@ class Hero(pygame.sprite.Sprite):
             "family_name": self.family_name,
             "health": self.health,
             "gold": self.gold,
+            "experience": self.experience,
             "inventory": [item.item_id for item in self.inventory],
             "stats": self.stats,
             "equipped_weapon_id": weapon_id,
@@ -108,6 +110,7 @@ class Hero(pygame.sprite.Sprite):
         )
         player.health = data["health"]
         player.gold = data["gold"]
+        player.experience = data["experience"]
         # --- Recreate the inventory from saved IDs ---
         player.inventory = []
         if "inventory" in data:

@@ -563,6 +563,8 @@ class CombatState(GameplayState):
         self.combat_log = [f"You encounter a {self.active_enemy.name}!"]
         self.current_turn = "PLAYER"
         self.phase = "ACTIVE"
+        # For now we'll just set experience to gain equal to enemy health
+        self.experience_to_gain = self.active_enemy.health
 
     def handle_events(self, event):
         super().handle_events(event)
@@ -622,6 +624,7 @@ class CombatState(GameplayState):
             self.combat_log.append(
                 f"The {self.active_enemy.name} is defeated! You find {gold_to_add} gold on them."
             )
+            self.player.experience += self.experience_to_gain
             # Check for item drops
             self.drop_chance(self.active_enemy.item_drops, ITEM_TEMPLATES)
 

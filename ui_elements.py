@@ -299,6 +299,12 @@ class CharacterSheet(UIElement):
         )
         screen.blit(gold_text, (self.rect.x + 30, y_offset + 40 + 5 * 30))
 
+        # Experience Display (Left Column, below Gold)
+        exp_text = self.font_text.render(
+            f"Experience: {self.player.experience}", True, C.BLUE
+        )
+        screen.blit(exp_text, (self.rect.x + 30, y_offset + 40 + 6 * 30))
+
         # --- Equipped Weapon Section (Right Column) ---
         x_offset = self.rect.x + 300
         y_offset = self.rect.y + 80
