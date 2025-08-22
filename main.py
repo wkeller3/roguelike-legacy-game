@@ -51,7 +51,6 @@ class Game:
             self.context.player = player
             self.state_stack.append(create_state("TOWN", self))
         else:
-            # char_creation_data = self.load_char_creation_data()
             self.state_stack.append(create_state("MAIN_MENU", self))
 
     def load_char_creation_data(self):
