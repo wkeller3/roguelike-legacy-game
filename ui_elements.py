@@ -407,7 +407,7 @@ class PauseMenu(UIElement):
             50,
             "Settings",
             self.font_title,
-            C.GRAY,
+            C.GREEN,
             C.GRAY,
         )
         self.quit_button = Button(
@@ -420,7 +420,6 @@ class PauseMenu(UIElement):
             C.RED,
             C.GRAY,
         )
-        self.settings_button.is_disabled = True  # Disable until we implement it
 
     def handle_event(self, event):
         if self.resume_button.handle_event(event):
@@ -428,6 +427,8 @@ class PauseMenu(UIElement):
         if self.save_button.handle_event(event):
             self.game.save_game_data()
             self.game.pop_state()  # Close menu after saving
+        if self.settings_button.handle_event(event):
+            self.game.push_state("SETTINGS")
         if self.quit_button.handle_event(event):
             self.game.running = False
 
@@ -596,3 +597,84 @@ class ShopUI(UIElement):
             self.sell_buttons.append(sell_button)
             sell_button.draw(screen)
             y_offset += 40
+
+
+class SettingsMenu(UIElement):
+    """A UI component for the settings screen."""
+
+    def __init__(self, game):
+        rect = pygame.Rect(
+            C.INTERNAL_WIDTH / 2 - 200, C.INTERNAL_HEIGHT / 2 - 200, 400, 400
+        )
+        super().__init__(rect)
+        self.game = game
+        self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
+        self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
+        self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
+
+        self.resolution_options = {
+            "800 x 600": (800, 600),
+            "1280 x 960": (1280, 960),
+            "1600 x 1200": (1600, 1200),
+        }
+        self.res_buttons = []
+        y_offset = self.rect.y + 120
+        for text, size in self.resolution_options.items():
+            button = Button(
+                self.rect.centerx - 125,
+                y_offset,
+                250,
+                40,
+                text,
+                self.font_text,
+                C.GREEN,
+                C.GRAY,
+            )
+            self.res_buttons.append((button, size))
+            y_offset += 60
+
+        self.back_button = Button(
+            self.rect.centerx - 100,
+            self.rect.bottom - 70,
+            200,
+            50,
+            "Back",
+            self.font_header,
+            C.YELLOW,
+            C.GRAY,
+        )
+
+    def handle_event(self, event):
+        if self.back_button.handle_event(event):
+            self.game.pop_state()
+
+        for button, size in self.res_buttons:
+            if button.handle_event(event):
+                self.game.set_resolution(size)
+
+    def draw(self, screen):
+        # Draw background panel
+        overlay = pygame.Surface((C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 220))
+        screen.blit(overlay, (0, 0))
+        pygame.draw.rect(screen, (30, 30, 40), self.rect)
+        pygame.draw.rect(screen, C.WHITE, self.rect, 2)
+
+        # Draw title
+        title_text = self.font_title.render("Settings", True, C.WHITE)
+        title_rect = title_text.get_rect(centerx=self.rect.centerx, y=self.rect.y + 20)
+        screen.blit(title_text, title_rect)
+
+        res_header = self.font_header.render("Resolution", True, C.WHITE)
+        screen.blit(res_header, (self.rect.x + 20, self.rect.y + 70))
+
+        # Draw buttons and highlight the current resolution
+        current_res = self.game.display_screen.get_size()
+        for button, size in self.res_buttons:
+            if size == current_res:
+                button.is_disabled = True  # Disable button for current resolution
+            else:
+                button.is_disabled = False
+            button.draw(screen)
+
+        self.back_button.draw(screen)

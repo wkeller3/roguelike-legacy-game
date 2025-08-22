@@ -22,10 +22,11 @@ class Game:
 
     def __init__(self):
         pygame.init()
+        # Load settings
+        self.settings = self._load_settings()
         # The actual window the player sees, now resizable
-        self.display_screen = pygame.display.set_mode(
-            (C.DEFAULT_SCREEN_WIDTH, C.DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE
-        )
+        self.display_screen = None
+        self.set_resolution(self.settings["resolution"])
         # The surface we will draw our fixed-resolution game onto
         self.virtual_screen = pygame.Surface((C.INTERNAL_WIDTH, C.INTERNAL_HEIGHT))
         pygame.display.set_caption("Title is a WIP")
@@ -35,6 +36,27 @@ class Game:
         self.state_stack = []
         self.current_state = None
         self.context = GameContext()
+
+    def _load_settings(self):
+        """Loads settings from settings.json, with defaults."""
+        try:
+            with open("settings.json", "r") as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            # If file doesn't exist or is corrupt, return defaults
+            return {"resolution": (C.DEFAULT_SCREEN_WIDTH, C.DEFAULT_SCREEN_HEIGHT)}
+
+    def _save_settings(self):
+        """Saves current settings to settings.json."""
+        with open("settings.json", "w") as f:
+            json.dump(self.settings, f, indent=4)
+        print("Settings saved.")
+
+    def set_resolution(self, new_size):
+        """Changes the window resolution and saves the setting."""
+        self.display_screen = pygame.display.set_mode(new_size, pygame.RESIZABLE)
+        self.settings["resolution"] = new_size
+        self._save_settings()
 
     def setup_states(self):
         """Initializes all the game states and sets the starting state."""
