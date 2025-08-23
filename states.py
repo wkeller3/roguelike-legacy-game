@@ -1,9 +1,11 @@
 # states.py
 
+import copy
 import pygame
 import random
 import constants as C
-from factories import ITEM_TEMPLATES, VENDOR_INVENTORIES
+from factories import GENE_TEMPLATES, ITEM_TEMPLATES, VENDOR_INVENTORIES
+from gene import StatGene
 from hero import Hero
 from item import Consumable, Weapon
 from npc import NPC
@@ -57,18 +59,24 @@ class CharCreationState(BaseState):
         self.font_title = pygame.font.Font(None, C.FONT_SIZE_TITLE)
         self.font_header = pygame.font.Font(None, C.FONT_SIZE_HEADER)
         self.font_text = pygame.font.Font(None, C.FONT_SIZE_TEXT)
+        self.temp_genome = {}
+        for gene_id, gene in GENE_TEMPLATES.items():
+            if isinstance(gene, StatGene):
+                new_gene = copy.deepcopy(gene)
+                new_gene.value = 1  # Start all stats at 1
+                self.temp_genome[gene_id] = new_gene
 
     def handle_events(self, event):
         super().handle_events(event)
         # Handle button clicks using the Button class's method
-        for stat in self.data["stats"]:
-            if self.data["ui_elements"][f"{stat}_plus"].handle_event(event):
+        for stat_id, gene in self.temp_genome.items():
+            if self.data["ui_elements"][f"{stat_id}_plus"].handle_event(event):
                 if self.data["points_to_spend"] > 0:
-                    self.data["stats"][stat] += 1
+                    gene.value += 1
                     self.data["points_to_spend"] -= 1
-            if self.data["ui_elements"][f"{stat}_minus"].handle_event(event):
-                if self.data["stats"][stat] > 1:
-                    self.data["stats"][stat] -= 1
+            if self.data["ui_elements"][f"{stat_id}_minus"].handle_event(event):
+                if gene.value > 1:
+                    gene.value -= 1
                     self.data["points_to_spend"] += 1
         if self.data["ui_elements"]["done_button"].handle_event(event):
             # Create the hero and prepare the persistent data for the next state
@@ -78,7 +86,7 @@ class CharCreationState(BaseState):
                 pos_x=100,
                 pos_y=C.INTERNAL_HEIGHT / 2,
             )
-            player.stats = self.data["stats"]
+            player.genome = self.temp_genome
             player.equipped_weapon = self.data["weapon_choices"][
                 self.data["selected_weapon_idx"]
             ]
@@ -166,12 +174,14 @@ class CharCreationState(BaseState):
             f"Attribute Points: {self.data['points_to_spend']}", True, C.WHITE
         )
         screen.blit(points_text, (50, 240))
-        for i, (stat, value) in enumerate(self.data["stats"].items()):
+        for i, (stat_id, gene) in enumerate(self.temp_genome.items()):
             y_pos = 280 + i * 40
-            stat_text = self.font_text.render(f"{stat}: {value}", True, C.WHITE)
+            stat_text = self.font_text.render(
+                f"{gene.name}: {gene.value}", True, C.WHITE
+            )
             screen.blit(stat_text, (50, y_pos + 5))
-            self.data["ui_elements"][f"{stat}_plus"].draw(screen)
-            self.data["ui_elements"][f"{stat}_minus"].draw(screen)
+            self.data["ui_elements"][f"{gene.gene_id}_plus"].draw(screen)
+            self.data["ui_elements"][f"{gene.gene_id}_minus"].draw(screen)
         # Weapon Section
         weapon_text = self.font_header.render("Choose a Weapon:", True, C.WHITE)
         screen.blit(weapon_text, (450, 140))
@@ -620,6 +630,12 @@ class CombatState(GameplayState):
             # Switch to victory phase instead of ending the state
             self.phase = "VICTORY"
             gold_to_add = random.randint(*self.active_enemy.gold_drop_range)
+            # --- Check for "Avaricious" trait ---
+            if self.player.has_trait("avaricious"):
+                avaricious_bonus = self.player.genome["avaricious"].effects[
+                    "gold_find_modifier"
+                ]
+                gold_to_add = int(gold_to_add * (1 + avaricious_bonus))
             self.player.gold += gold_to_add
             self.combat_log.append(
                 f"The {self.active_enemy.name} is defeated! You find {gold_to_add} gold on them."
@@ -645,7 +661,7 @@ class CombatState(GameplayState):
                 )
                 self.active_enemy.is_charging_attack = False
             else:
-                if random.randint(1, 100) <= 75:
+                if random.randint(1, 100) <= 90:
                     attack_result = resolve_attack(
                         self.active_enemy, self.player, "normal"
                     )
@@ -657,8 +673,16 @@ class CombatState(GameplayState):
                     }
             damage_taken = attack_result["damage"]
             if self.player.is_defending:
-                damage_taken = damage_taken // 2
-                attack_result["message"] += " (Blocked!)"
+                base_reduction = 0.5  # 50%
+                # --- Check for "Cautious" trait ---
+                if self.player.has_trait("cautious"):
+                    cautious_bonus = self.player.genome["cautious"].effects[
+                        "defend_damage_reduction"
+                    ]
+                    base_reduction += cautious_bonus
+
+                damage_taken = int(damage_taken * (1 - base_reduction))
+                attack_result["message"] += f" (Blocked {int(base_reduction * 100)}%!)"
                 self.player.is_defending = False
             self.combat_log.append(attack_result["message"])
             self.player.health = max(0, self.player.health - damage_taken)

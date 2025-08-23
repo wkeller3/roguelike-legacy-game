@@ -1,0 +1,50 @@
+{
+    "strength": {
+        "type": "stat",
+        "name": "Strength",
+        "min_value": 1,
+        "max_value": 20
+    },
+    "dexterity": {
+        "type": "stat",
+        "name": "Dexterity",
+        "min_value": 1,
+        "max_value": 20
+    },
+    "intelligence": {
+        "type": "stat",
+        "name": "Intelligence",
+        "min_value": 1,
+        "max_value": 20
+    },
+    "luck": {
+        "type": "stat",
+        "name": "Luck",
+        "min_value": 1,
+        "max_value": 20
+    },
+    "brave": {
+        "type": "trait",
+        "name": "Brave",
+        "description": "Deals 25% more damage when below 30% health.",
+        "effects": {
+            "low_health_damage_boost": 0.25
+        }
+    },
+    "avaricious": {
+        "type": "trait",
+        "name": "Avaricious",
+        "description": "Finds 10% more gold.",
+        "effects": {
+            "gold_find_modifier": 0.10
+        }
+    },
+    "cautious": {
+        "type": "trait",
+        "name": "Cautious",
+        "description": "Takes 15% less damage when defending.",
+        "effects": {
+            "defend_damage_reduction": 0.15
+        }
+    }
+}

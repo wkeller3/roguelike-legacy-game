@@ -1,7 +1,7 @@
 # factories.py
 import json
-from enemy import Enemy
 from item import Item, Weapon, Consumable
+from gene import Gene, StatGene, TraitGene, CosmeticGene
 
 # --- Load all weapon, enemy, and item data at startup ---
 with open("items.json", "r") as f:
@@ -12,6 +12,9 @@ with open("enemies.json", "r") as f:
 
 with open("vendors.json", "r") as f:
     VENDOR_INVENTORIES = json.load(f)
+
+with open("genetics.json", "r") as f:
+    GENE_TEMPLATES_DATA = json.load(f)
 
 # Create a dictionary of Weapon objects, ready to be used
 ITEM_TEMPLATES = {}
@@ -38,6 +41,28 @@ for item_id, item_data in ITEM_TEMPLATES_DATA.items():
             item_id=item_id, name=item_data["name"], value=item_data["value"]
         )
 
+# --- Create a dictionary of Gene objects ---
+GENE_TEMPLATES = {}
+for gene_id, gene_data in GENE_TEMPLATES_DATA.items():
+    gene_type = gene_data.get("type")
+    if gene_type == "stat":
+        GENE_TEMPLATES[gene_id] = StatGene(
+            gene_id=gene_id,
+            name=gene_data["name"],
+            gene_type=gene_type,
+            value=0,  # Base value is 0, will be set per character
+            min_value=gene_data["min_value"],
+            max_value=gene_data["max_value"],
+        )
+    elif gene_type == "trait":
+        GENE_TEMPLATES[gene_id] = TraitGene(
+            gene_id=gene_id,
+            name=gene_data["name"],
+            gene_type=gene_type,
+            description=gene_data["description"],
+            effects=gene_data["effects"],
+        )
+
 
 def create_enemy(enemy_name, x, y):
     """
@@ -51,6 +76,8 @@ def create_enemy(enemy_name, x, y):
     Returns:
         Enemy: An instance of the Enemy class, configured with the template data.
     """
+    from enemy import Enemy
+
     template = ENEMY_TEMPLATES[enemy_name]
     weapon_id = template["weapon"]
     weapon = ITEM_TEMPLATES[weapon_id]

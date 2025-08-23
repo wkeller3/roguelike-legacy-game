@@ -3,7 +3,9 @@
 import pygame
 import json
 import constants as C
+from factories import GENE_TEMPLATES
 from gamemap import GameMap
+from gene import StatGene
 from item import Weapon
 from ui_elements import Button
 from states import STATE_MAP, create_state
@@ -113,14 +115,17 @@ class Game:
         data["ui_elements"]["name_box"] = pygame.Rect(50, 80, 300, 40)
         data["ui_elements"]["family_name_box"] = pygame.Rect(50, 160, 300, 40)
         stat_y_start = 280
-        for i, stat in enumerate(data["stats"]):
-            y_pos = stat_y_start + i * 40
-            data["ui_elements"][f"{stat}_plus"] = Button(
-                250, y_pos, 30, 30, "+", font_text, C.GREEN, C.GRAY
-            )
-            data["ui_elements"][f"{stat}_minus"] = Button(
-                290, y_pos, 30, 30, "-", font_text, C.RED, C.GRAY
-            )
+        i = 0
+        for gene in GENE_TEMPLATES.values():
+            if isinstance(gene, StatGene):
+                y_pos = stat_y_start + i * 40
+                data["ui_elements"][f"{gene.gene_id}_plus"] = Button(
+                    250, y_pos, 30, 30, "+", font_text, C.GREEN, C.GRAY
+                )
+                data["ui_elements"][f"{gene.gene_id}_minus"] = Button(
+                    290, y_pos, 30, 30, "-", font_text, C.RED, C.GRAY
+                )
+                i += 1
         weapon_y_start = 180
         for i in range(len(data["weapon_choices"])):
             data["ui_elements"][f"weapon_{i}_rect"] = pygame.Rect(

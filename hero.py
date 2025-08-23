@@ -1,24 +1,24 @@
 # hero.py
 
+import copy
 import pygame
 import constants as C
-from factories import ITEM_TEMPLATES
+from entity import BaseEntity
+from factories import ITEM_TEMPLATES, GENE_TEMPLATES
+from gene import StatGene, TraitGene
+import copy
 
 
 # Make the Hero class a Pygame Sprite for 2D game object functionality.
-class Hero(pygame.sprite.Sprite):
+class Hero(BaseEntity):
     """
     Represents the hero, now as a movable sprite.
-    Inherits from pygame.sprite.Sprite.
+    Inherits from BaseEntity.
     """
 
     def __init__(self, first_name, family_name, pos_x, pos_y):
-        """
-        The constructor is updated to handle sprite properties.
-        pos_x and pos_y are the starting coordinates for the hero.
-        """
-        # This line is essential - it runs the constructor of the parent Sprite class.
-        super().__init__()
+        # Use the full name for the base entity
+        super().__init__(name=f"{first_name} {family_name}", pos_x=pos_x, pos_y=pos_y)
 
         # --- Visual Representation (The Sprite's "image" and "rect") ---
         # Instead of loading an image file, we create a simple square surface.
@@ -46,33 +46,44 @@ class Hero(pygame.sprite.Sprite):
         self.max_health = C.PLAYER_STARTING_HEALTH
         self.gold = 0
         self.inventory = []
-        self.stats = {"Strength": 1, "Dexterity": 1, "Intelligence": 1, "Luck": 1}
-        possible_traits = ["Brave", "Cautious", "Avaricious", "Kind", "Clever"]
-        self.traits = []  # Traits can be added later in the game
+        # possible_traits = ["Brave", "Cautious", "Avaricious", "Kind", "Clever"]
         self.experience = 0
 
-        # --- Equipment ---
-        self.equipped_weapon = None  # Will be set after creation
+    # def get_stat(self, stat_id):
+    #     """Safely gets a stat value from the genome."""
+    #     gene = self.genome.get(stat_id)
+    #     return gene.value if isinstance(gene, StatGene) else 0
 
-        # --- Combat State ---
-        self.is_defending = False
+    # def has_trait(self, trait_id):
+    #     """Checks if a specific trait exists in the genome."""
+    #     return trait_id in self.genome
 
-    def move(self, dx, dy, screen_width, screen_height):
-        """
-        Moves the hero by a given amount (dx, dy) and keeps them on screen.
-        """
-        self.rect.x += dx
-        self.rect.y += dy
+    # def get_stat_genes(self):
+    #     """Returns a sorted list of all StatGene objects in the genome."""
+    #     genes = [g for g in self.genome.values() if isinstance(g, StatGene)]
+    #     return sorted(genes, key=lambda g: g.name)
 
-        # Boundary checking to prevent the hero from leaving the screen
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > screen_width:
-            self.rect.right = screen_width
-        if self.rect.top < 0:
-            self.rect.top = 0
-        if self.rect.bottom > screen_height:
-            self.rect.bottom = screen_height
+    # def get_trait_genes(self):
+    #     """Returns a sorted list of all TraitGene objects in the genome."""
+    #     genes = [g for g in self.genome.values() if isinstance(g, TraitGene)]
+    #     return sorted(genes, key=lambda g: g.name)
+
+    # def move(self, dx, dy, screen_width, screen_height):
+    #     """
+    #     Moves the hero by a given amount (dx, dy) and keeps them on screen.
+    #     """
+    #     self.rect.x += dx
+    #     self.rect.y += dy
+
+    #     # Boundary checking to prevent the hero from leaving the screen
+    #     if self.rect.left < 0:
+    #         self.rect.left = 0
+    #     if self.rect.right > screen_width:
+    #         self.rect.right = screen_width
+    #     if self.rect.top < 0:
+    #         self.rect.top = 0
+    #     if self.rect.bottom > screen_height:
+    #         self.rect.bottom = screen_height
 
     def to_dict(self, current_room_coords=None):
         """Converts the hero's state to a dictionary for saving."""
@@ -91,7 +102,10 @@ class Hero(pygame.sprite.Sprite):
             "gold": self.gold,
             "experience": self.experience,
             "inventory": [item.item_id for item in self.inventory],
-            "stats": self.stats,
+            "genome": {
+                gene_id: gene.value if isinstance(gene, StatGene) else True
+                for gene_id, gene in self.genome.items()
+            },
             "equipped_weapon_id": weapon_id,
             "position": {
                 "pos_in_room": self.rect.center,
@@ -116,7 +130,16 @@ class Hero(pygame.sprite.Sprite):
         if "inventory" in data:
             for item_id in data["inventory"]:
                 player.inventory.append(ITEM_TEMPLATES[item_id])
-        player.stats = data["stats"]
+        player.genome = {}
+        if "genome" in data:
+            for gene_id, value in data["genome"].items():
+                template_gene = GENE_TEMPLATES[gene_id]
+                new_gene = copy.deepcopy(
+                    template_gene
+                )  # Use deepcopy to avoid modifying the template
+                if isinstance(new_gene, StatGene):
+                    new_gene.value = value
+                player.genome[gene_id] = new_gene
         if data["equipped_weapon_id"]:
             player.equipped_weapon = ITEM_TEMPLATES[data["equipped_weapon_id"]]
         return player

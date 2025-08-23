@@ -289,9 +289,26 @@ class CharacterSheet(UIElement):
         y_offset = self.rect.y + 80
         stats_header = self.font_header.render("Attributes", True, C.WHITE)
         screen.blit(stats_header, (self.rect.x + 20, y_offset))
-        for i, (stat, value) in enumerate(self.player.stats.items()):
-            stat_text = self.font_text.render(f"{stat}: {value}", True, C.GRAY)
+        stat_genes = self.player.get_stat_genes()
+        for i, gene in enumerate(stat_genes):
+            stat_text = self.font_text.render(
+                f"{gene.name}: {gene.value}", True, C.GRAY
+            )
             screen.blit(stat_text, (self.rect.x + 30, y_offset + 40 + i * 30))
+
+        # --- Traits Section ---
+        y_offset += 40 + len(stat_genes) * 30  # Add space
+        traits_header = self.font_header.render("Traits", True, C.WHITE)
+        screen.blit(traits_header, (self.rect.x + 20, y_offset))
+
+        trait_genes = self.player.get_trait_genes()
+        if not trait_genes:
+            no_traits_text = self.font_text.render("None", True, C.GRAY)
+            screen.blit(no_traits_text, (self.rect.x + 30, y_offset + 40))
+        else:
+            for i, gene in enumerate(trait_genes):
+                trait_text = self.font_text.render(f"- {gene.name}", True, C.GRAY)
+                screen.blit(trait_text, (self.rect.x + 30, y_offset + 40 + i * 30))
 
         # Gold Display (Left Column, below Attributes)
         gold_text = self.font_text.render(

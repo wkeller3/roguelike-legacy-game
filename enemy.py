@@ -1,21 +1,22 @@
 # enemy.py
+import copy
 import pygame
 import random
 import math
 import constants as C
+from entity import BaseEntity
+from factories import GENE_TEMPLATES
 
 
-class Enemy(pygame.sprite.Sprite):
+class Enemy(BaseEntity):
     """
     A generic Enemy class that is configured using a data template.
     All enemies share this same class and logic.
     """
 
     def __init__(self, pos_x, pos_y, template_data, weapon):
-        super().__init__()
+        super().__init__(name=template_data["name"], pos_x=pos_x, pos_y=pos_y)
 
-        # --- Configure from Template ---
-        self.name = template_data["name"]
         sprite_filename = template_data.get("sprite")
 
         # Appearance
@@ -31,10 +32,14 @@ class Enemy(pygame.sprite.Sprite):
 
         # Stats with random variation
         self.health = random.randint(*template_data["health_range"])
-        self.stats = {
-            "Strength": random.randint(*template_data["stats"]["Strength"]),
-            "Dexterity": random.randint(*template_data["stats"]["Dexterity"]),
-        }
+        self.max_health = self.health
+        # Populate genome from template
+        stat_template = template_data.get("stats", {})
+        for stat_id, value_range in stat_template.items():
+            gene_template = GENE_TEMPLATES[stat_id.lower()]
+            new_gene = copy.deepcopy(gene_template)
+            new_gene.value = random.randint(*value_range)
+            self.genome[stat_id.lower()] = new_gene
         self.speed = random.uniform(*template_data["speed_range"])
         self.sight_radius = template_data["sight_radius"]
         self.chase_radius = self.sight_radius + 50
@@ -85,18 +90,17 @@ class Enemy(pygame.sprite.Sprite):
                 dy /= norm
             self.move(dx * self.speed, dy * self.speed, screen_width, screen_height)
 
-    def move(self, dx, dy, screen_width, screen_height):
-        # ... (This method is unchanged) ...
-        self.rect.x += dx
-        self.rect.y += dy
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > screen_width:
-            self.rect.right = screen_width
-        if self.rect.top < 0:
-            self.rect.top = 0
-        if self.rect.bottom > screen_height:
-            self.rect.bottom = screen_height
+    # def move(self, dx, dy, screen_width, screen_height):
+    #     self.rect.x += dx
+    #     self.rect.y += dy
+    #     if self.rect.left < 0:
+    #         self.rect.left = 0
+    #     if self.rect.right > screen_width:
+    #         self.rect.right = screen_width
+    #     if self.rect.top < 0:
+    #         self.rect.top = 0
+    #     if self.rect.bottom > screen_height:
+    #         self.rect.bottom = screen_height
 
     def to_dict(self):
         """Converts the enemy's current state to a dictionary."""
